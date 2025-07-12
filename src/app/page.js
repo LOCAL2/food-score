@@ -723,7 +723,7 @@ export default function Home() {
               </div>
             ) : !isRankLoading && !userRank && session ? (
               <div className="inline-block bg-info/20 text-info px-6 py-3 rounded-full font-bold text-lg shadow-lg">
-                🌟 บันทึกคะแนนแรกเพื่อเข้าสู่การแข่งขัน!
+                บันทึกคะแนนแรกเพื่อเข้าสู่การแข่งขัน!
               </div>
             ) : null}
           </div>
