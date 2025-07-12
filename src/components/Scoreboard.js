@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { supabase } from '@/lib/supabase'
 
 export default function Scoreboard() {
   const [leaderboard, setLeaderboard] = useState([])
@@ -14,12 +15,41 @@ export default function Scoreboard() {
   useEffect(() => {
     fetchLeaderboard()
 
-    // เริ่ม real-time polling ทุก 100ms
+    // ลอง setup Supabase real-time subscription
+    let subscription = null
+
+    const setupRealtimeSubscription = async () => {
+      try {
+        subscription = supabase
+          .channel('scoreboard_changes')
+          .on('postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'scoreboard'
+            },
+            (payload) => {
+              console.log('Real-time update:', payload)
+              fetchLeaderboard(true) // silent update เมื่อมีการเปลี่ยนแปลง
+            }
+          )
+          .subscribe()
+      } catch (error) {
+        console.log('Real-time subscription failed, using polling fallback')
+      }
+    }
+
+    setupRealtimeSubscription()
+
+    // Fallback polling ทุก 2 วินาที (ลดลงจาก 100ms เพื่อประสิทธิภาพ)
     const intervalId = setInterval(() => {
       fetchLeaderboard(true) // silent update
-    }, 100)
+    }, 2000)
 
     return () => {
+      if (subscription) {
+        supabase.removeChannel(subscription)
+      }
       clearInterval(intervalId)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
