@@ -113,13 +113,6 @@ export default function Scoreboard() {
           Scoreboard
 
         </h2>
-        <p className="text-base-content/70">
-          ตารางคะแนนสูงสุดของผู้เล่นทั้งหมด
-          <span className="text-green-500 ml-2">• Real-time</span>
-          {usingFallback && (
-            <span className="text-orange-500 ml-2">• Demo Mode</span>
-          )}
-        </p>
         {lastUpdate && (
           <p className="text-xs text-base-content/50 mt-1">
             อัพเดทล่าสุด: {new Date(lastUpdate).toLocaleTimeString('th-TH')}
