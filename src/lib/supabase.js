@@ -3,12 +3,14 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-// สร้าง Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// สร้าง Supabase client (ถ้ามี credentials)
+export const supabase = supabaseUrl && supabaseAnonKey
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null
 
 // ฟังก์ชันตรวจสอบการเชื่อมต่อ
 export const checkSupabaseConnection = async () => {
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabase || !supabaseUrl || !supabaseAnonKey) {
     console.warn('Supabase credentials not found. Using fallback storage.')
     return false
   }
@@ -28,6 +30,11 @@ export const checkSupabaseConnection = async () => {
 
 // ฟังก์ชันสร้าง table (ถ้ายังไม่มี)
 export const initializeScoreboardTable = async () => {
+  if (!supabase) {
+    console.log('Supabase not available, skipping table initialization')
+    return
+  }
+
   try {
     // ลองสร้าง table ผ่าน SQL
     const { error } = await supabase.rpc('create_scoreboard_table')

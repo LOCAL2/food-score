@@ -19,6 +19,11 @@ export default function Scoreboard() {
     let subscription = null
 
     const setupRealtimeSubscription = async () => {
+      if (!supabase) {
+        console.log('Supabase not available, using polling only')
+        return
+      }
+
       try {
         subscription = supabase
           .channel('scoreboard_changes')
@@ -47,7 +52,7 @@ export default function Scoreboard() {
     }, 2000)
 
     return () => {
-      if (subscription) {
+      if (subscription && supabase) {
         supabase.removeChannel(subscription)
       }
       clearInterval(intervalId)
