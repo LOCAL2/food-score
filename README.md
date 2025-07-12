@@ -37,7 +37,10 @@ NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your-random-secret-key
 DISCORD_CLIENT_ID=your-discord-client-id
 DISCORD_CLIENT_SECRET=your-discord-client-secret
+MONGODB_URI=mongodb://localhost:27017/food-score  # Optional
 ```
+
+**หมายเหตุ:** `MONGODB_URI` เป็น optional - หากไม่ได้ตั้งค่า ระบบจะใช้ in-memory storage แทน
 
 ## Getting Started
 

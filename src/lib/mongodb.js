@@ -2,8 +2,9 @@ import mongoose from 'mongoose'
 
 const MONGODB_URI = process.env.MONGODB_URI
 
+// ทำให้ MongoDB เป็น optional สำหรับ development/demo
 if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable inside .env.local')
+  console.warn('MONGODB_URI not found. MongoDB features will be disabled.')
 }
 
 /**
@@ -18,6 +19,11 @@ if (!cached) {
 }
 
 async function connectDB() {
+  // ถ้าไม่มี MONGODB_URI ให้ return null
+  if (!MONGODB_URI) {
+    return null
+  }
+
   if (cached.conn) {
     return cached.conn
   }

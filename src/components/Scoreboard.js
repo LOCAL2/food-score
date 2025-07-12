@@ -8,6 +8,7 @@ export default function Scoreboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [lastUpdate, setLastUpdate] = useState(null)
+  const [usingFallback, setUsingFallback] = useState(false)
   const { data: session } = useSession()
 
   useEffect(() => {
@@ -21,7 +22,7 @@ export default function Scoreboard() {
     return () => {
       clearInterval(intervalId)
     }
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchLeaderboard = async (silent = false) => {
     try {
@@ -44,6 +45,7 @@ export default function Scoreboard() {
         if (!lastUpdate || newTimestamp !== lastUpdate) {
           setLeaderboard(data.leaderboard)
           setLastUpdate(newTimestamp)
+          setUsingFallback(data.usingFallback || false)
         }
       } else {
         if (!silent) {
@@ -113,10 +115,15 @@ export default function Scoreboard() {
         </h2>
         <p className="text-base-content/70">
           ตารางคะแนนสูงสุดของผู้เล่นทั้งหมด
+          <span className="text-green-500 ml-2">• Real-time</span>
+          {usingFallback && (
+            <span className="text-orange-500 ml-2">• Demo Mode</span>
+          )}
         </p>
         {lastUpdate && (
           <p className="text-xs text-base-content/50 mt-1">
             อัพเดทล่าสุด: {new Date(lastUpdate).toLocaleTimeString('th-TH')}
+            {usingFallback && <span className="text-orange-500 ml-2">(ข้อมูลชั่วคราว)</span>}
           </p>
         )}
       </div>
@@ -164,7 +171,6 @@ export default function Scoreboard() {
                     {getRankIcon(entry.rank)}
                   </div>
 
-                  {/* User Info */}
                   <div className="flex items-center gap-3 flex-1">
                     <div className="avatar">
                       <div className="w-10 h-10 rounded-full">
@@ -190,7 +196,6 @@ export default function Scoreboard() {
                     </div>
                   </div>
 
-                  {/* Score and Level */}
                   <div className="text-right">
                     <div className="flex items-center gap-2 justify-end mb-1">
                       <span className="text-2xl">{entry.level.emoji}</span>

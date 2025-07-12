@@ -2,7 +2,17 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import connectDB from '@/lib/mongodb'
-import Scoreboard from '@/models/Scoreboard'
+
+// ใช้ in-memory storage เป็น fallback เมื่อไม่มี MongoDB
+const fallbackScoreboardData = new Map()
+
+// Dynamic import สำหรับ Scoreboard model
+let Scoreboard = null
+try {
+  Scoreboard = require('@/models/Scoreboard').default
+} catch (error) {
+  console.warn('Scoreboard model not available, using fallback storage')
+}
 
 // ฟังก์ชันหาระดับจากคะแนน
 const getScoreLevel = (score) => {
@@ -23,10 +33,19 @@ const getScoreLevel = (score) => {
 // GET - ดึงข้อมูล scoreboard
 export async function GET() {
   try {
-    await connectDB()
+    const dbConnection = await connectDB()
 
-    // ดึงข้อมูล leaderboard จาก MongoDB
-    const leaderboardData = await Scoreboard.getLeaderboard(10)
+    let leaderboardData = []
+
+    if (dbConnection && Scoreboard) {
+      // ใช้ MongoDB ถ้ามี
+      leaderboardData = await Scoreboard.getLeaderboard(10)
+    } else {
+      // ใช้ fallback storage
+      leaderboardData = Array.from(fallbackScoreboardData.values())
+        .sort((a, b) => b.highestScore - a.highestScore)
+        .slice(0, 10)
+    }
 
     // เพิ่ม rank และ level
     const leaderboard = leaderboardData.map((entry, index) => ({
@@ -38,7 +57,8 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       leaderboard,
-      timestamp: new Date().toISOString() // เพิ่ม timestamp สำหรับ real-time tracking
+      timestamp: new Date().toISOString(),
+      usingFallback: !dbConnection || !Scoreboard
     })
   } catch (error) {
     console.error('Error fetching scoreboard:', error)
@@ -52,7 +72,7 @@ export async function GET() {
 // POST - บันทึกคะแนนใหม่
 export async function POST(request) {
   try {
-    await connectDB()
+    const dbConnection = await connectDB()
 
     const session = await getServerSession(authOptions)
 
@@ -76,15 +96,46 @@ export async function POST(request) {
     const userName = session.user.name || 'Unknown User'
     const userImage = session.user.image || null
 
-    // ใช้ static method ของ model เพื่ออัพเดทคะแนน
-    const result = await Scoreboard.updateScore({
-      userId,
-      userName,
-      userImage,
-      score,
-      mainDishCount: mainDishes?.filter(d => d.name?.trim()).length || 0,
-      sideDishCount: sideDishes?.filter(d => d.name?.trim()).length || 0
-    })
+    let result
+
+    if (dbConnection && Scoreboard) {
+      // ใช้ MongoDB
+      result = await Scoreboard.updateScore({
+        userId,
+        userName,
+        userImage,
+        score,
+        mainDishCount: mainDishes?.filter(d => d.name?.trim()).length || 0,
+        sideDishCount: sideDishes?.filter(d => d.name?.trim()).length || 0
+      })
+    } else {
+      // ใช้ fallback storage
+      const existingData = fallbackScoreboardData.get(userId)
+
+      if (!existingData || score > existingData.highestScore) {
+        fallbackScoreboardData.set(userId, {
+          userId,
+          userName,
+          userImage,
+          highestScore: score,
+          achievedAt: new Date().toISOString(),
+          mainDishCount: mainDishes?.filter(d => d.name?.trim()).length || 0,
+          sideDishCount: sideDishes?.filter(d => d.name?.trim()).length || 0
+        })
+
+        result = {
+          success: true,
+          isNewRecord: true,
+          data: { highestScore: score }
+        }
+      } else {
+        result = {
+          success: true,
+          isNewRecord: false,
+          data: existingData
+        }
+      }
+    }
 
     if (result.success) {
       return NextResponse.json({
@@ -94,7 +145,8 @@ export async function POST(request) {
         score,
         highestScore: result.data.highestScore,
         level: getScoreLevel(score),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        usingFallback: !dbConnection || !Scoreboard
       })
     } else {
       throw new Error('Failed to update score')
