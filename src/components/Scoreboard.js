@@ -235,58 +235,53 @@ export default function Scoreboard() {
                       : 'border-base-300 bg-base-100'
                   }`}
                 >
-              <div className="card-body p-4">
-                <div className="flex items-center gap-4">
-                  {/* Rank */}
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${getRankStyle(entry.rank)}`}>
-                    {getRankIcon(entry.rank)}
-                  </div>
+                  <div className="card-body p-4">
+                    <div className="flex items-center gap-4">
+                      {/* Rank */}
+                      <div className="text-3xl font-bold text-primary min-w-[60px] text-center">
+                        {getRankIcon(entry.rank)}
+                      </div>
 
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className="avatar">
-                      <div className="w-10 h-10 rounded-full">
-                        <img
-                          src={entry.userImage || `https://via.placeholder.com/40x40/667eea/ffffff?text=${entry.userName?.charAt(0) || 'U'}`}
-                          alt={entry.userName}
-                          onError={(e) => {
-                            e.target.src = `https://via.placeholder.com/40x40/667eea/ffffff?text=${entry.userName?.charAt(0) || 'U'}`
-                          }}
-                        />
+                      {/* User Info */}
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="avatar">
+                          <div className="w-12 h-12 rounded-full">
+                            <img
+                              src={entry.userImage || 'https://via.placeholder.com/48/96ceb4/ffffff?text=?'}
+                              alt={entry.userName}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-bold text-lg">{entry.userName}</h3>
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl">{entry.level.emoji}</span>
+                            <span className="font-semibold" style={{ color: entry.level.color }}>
+                              {entry.level.name}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div>
-                      <div className="font-semibold text-base-content">
-                        {entry.userName}
-                        {(session?.user?.id === entry.userId || session?.user?.email === entry.userId) && (
-                          <span className="badge badge-primary badge-sm ml-2">คุณ</span>
-                        )}
-                      </div>
-                      <div className="text-sm text-base-content/60">
-                        {new Date(entry.achievedAt).toLocaleDateString('th-TH')}
-                      </div>
-                    </div>
-                  </div>
 
-                  <div className="text-right">
-                    <div className="flex items-center gap-2 justify-end mb-1">
-                      <span className="text-2xl">{entry.level.emoji}</span>
-                      <div>
-                        <div className="text-2xl font-bold" style={{ color: entry.level.color }}>
+                      {/* Score */}
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-primary">
                           {entry.highestScore}
                         </div>
-                        <div className="text-sm font-medium" style={{ color: entry.level.color }}>
-                          {entry.level.name}
+                        <div className="text-sm text-base-content/70">
+                          คะแนน
+                        </div>
+                        <div className="text-xs text-base-content/50">
+                          🍛 {entry.mainDishCount} | 🥗 {entry.sideDishCount}
                         </div>
                       </div>
-                    </div>
-                    <div className="text-xs text-base-content/50">
-                      🍛 {entry.mainDishCount} | 🥗 {entry.sideDishCount}
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
