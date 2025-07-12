@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { supabase } from '@/lib/supabase';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Header from '@/components/Header';
 
@@ -27,6 +28,8 @@ export default function Home() {
   const [scoreboardStatus, setScoreboardStatus] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [userRank, setUserRank] = useState(null);
+  const [isRankLoading, setIsRankLoading] = useState(false);
+  const [lastRankUpdate, setLastRankUpdate] = useState(null);
 
   const addMainDish = () => {
     setMainDishes([...mainDishes, { name: '', amount: 1 }]);
@@ -103,10 +106,14 @@ export default function Home() {
   };
 
   // ฟังก์ชันดึงข้อมูล rank ของผู้ใช้
-  const fetchUserRank = async () => {
+  const fetchUserRank = async (silent = false) => {
     if (!session?.user) {
       console.log('No session, skipping rank fetch');
       return;
+    }
+
+    if (!silent) {
+      setIsRankLoading(true);
     }
 
     try {
@@ -124,8 +131,22 @@ export default function Home() {
         console.log('Current user found:', currentUser);
 
         if (currentUser) {
-          setUserRank(currentUser.rank);
-          console.log('User rank set to:', currentUser.rank);
+          const newRank = currentUser.rank;
+          const oldRank = userRank;
+
+          setUserRank(newRank);
+          setLastRankUpdate(new Date().toISOString());
+
+          console.log('User rank updated:', oldRank, '->', newRank);
+
+          // แสดง notification ถ้าอันดับเปลี่ยน
+          if (oldRank && oldRank !== newRank && !silent) {
+            if (newRank < oldRank) {
+              showNotification(`🎉 อันดับของคุณขึ้นเป็น #${newRank}!`, 'success');
+            } else if (newRank > oldRank) {
+              showNotification(`📉 อันดับของคุณลงเป็น #${newRank}`, 'info');
+            }
+          }
         } else {
           console.log('User not found in leaderboard');
           setUserRank(null);
@@ -133,6 +154,10 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Error fetching user rank:', error);
+    } finally {
+      if (!silent) {
+        setIsRankLoading(false);
+      }
     }
   };
 
@@ -166,8 +191,19 @@ export default function Home() {
         setScoreboardStatus(data);
         if (data.isNewRecord) {
           showNotification(`🎉 สถิติใหม่! คะแนนสูงสุด ${score} คะแนน`, 'success');
-          // อัพเดท rank หลังจากบันทึกสถิติใหม่
-          setTimeout(fetchUserRank, 1000);
+          // อัพเดท rank ทันทีหลังจากบันทึกสถิติใหม่
+          setTimeout(() => {
+            fetchUserRank();
+          }, 500);
+          // อัพเดทอีกครั้งหลัง 2 วินาที เพื่อให้แน่ใจ
+          setTimeout(() => {
+            fetchUserRank();
+          }, 2000);
+        } else {
+          // อัพเดท rank แม้ไม่ใช่สถิติใหม่ (เผื่อมีการเปลี่ยนแปลงอันดับ)
+          setTimeout(() => {
+            fetchUserRank();
+          }, 1000);
         }
       } else {
         console.error('Scoreboard API error:', data.error);
@@ -477,6 +513,50 @@ export default function Home() {
     // ดึงข้อมูล rank เมื่อ login
     if (session) {
       fetchUserRank();
+
+      // ลอง setup Supabase real-time subscription
+      let subscription = null;
+
+      const setupRealtimeSubscription = async () => {
+        if (supabase) {
+          try {
+            subscription = supabase
+              .channel('scoreboard_rank_changes')
+              .on('postgres_changes',
+                {
+                  event: '*',
+                  schema: 'public',
+                  table: 'scoreboard'
+                },
+                (payload) => {
+                  console.log('Scoreboard real-time update:', payload);
+                  // อัพเดท rank เมื่อมีการเปลี่ยนแปลงใน scoreboard (silent mode)
+                  setTimeout(() => {
+                    fetchUserRank(true);
+                  }, 500);
+                }
+              )
+              .subscribe();
+          } catch (error) {
+            console.log('Real-time subscription failed, using polling fallback');
+          }
+        }
+      };
+
+      setupRealtimeSubscription();
+
+      // Fallback polling สำหรับ rank ทุก 10 วินาที (ลดลงเพราะมี real-time)
+      const rankInterval = setInterval(() => {
+        fetchUserRank(true); // silent mode สำหรับ polling
+      }, 10000);
+
+      // Cleanup interval และ subscription เมื่อ component unmount หรือ session เปลี่ยน
+      return () => {
+        if (subscription && supabase) {
+          supabase.removeChannel(subscription);
+        }
+        clearInterval(rankInterval);
+      };
     }
 
     // ตรวจสอบ URL parameters สำหรับข้อมูลที่แชร์
@@ -572,12 +652,23 @@ export default function Home() {
               <div>Session: {session?.user?.name || 'No session'}</div>
               <div>User ID: {session?.user?.id || session?.user?.email || 'No ID'}</div>
               <div>Current Rank: {userRank || 'No rank'}</div>
-              <button
-                onClick={fetchUserRank}
-                className="btn btn-xs btn-primary mt-2"
-              >
-                Refresh Rank
-              </button>
+              <div>Last Update: {lastRankUpdate ? new Date(lastRankUpdate).toLocaleTimeString() : 'Never'}</div>
+              <div>Supabase: {supabase ? '✅ Connected' : '❌ Not available'}</div>
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => fetchUserRank(false)}
+                  className={`btn btn-xs btn-primary ${isRankLoading ? 'loading' : ''}`}
+                  disabled={isRankLoading}
+                >
+                  {isRankLoading ? 'Loading...' : 'Refresh Rank'}
+                </button>
+                <button
+                  onClick={() => fetchUserRank(true)}
+                  className="btn btn-xs btn-ghost"
+                >
+                  Silent Refresh
+                </button>
+              </div>
             </div>
           </div>
         )}

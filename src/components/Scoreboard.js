@@ -210,15 +210,6 @@ export default function Scoreboard() {
 
             return (
               <div key={entry.userId}>
-                {/* ข้อความพิเศษสำหรับ Top 3 */}
-                {topMessage && (
-                  <div className="mb-2 text-center">
-                    <div className="inline-block bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg animate-pulse">
-                      {topMessage}
-                    </div>
-                  </div>
-                )}
-
                 <div
                   className={`card shadow-lg border-2 transition-all duration-300 hover:shadow-xl ${
                     isCurrentUser
