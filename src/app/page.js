@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import Header from '@/components/Header';
 
 const SCORE_LEVELS = [
   { maxScore: 4, name: "Normal", emoji: "😊", color: "#96ceb4" },
@@ -20,6 +22,8 @@ export default function Home() {
   const [isSharedData, setIsSharedData] = useState(false);
   const [notification, setNotification] = useState(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [scoreboardStatus, setScoreboardStatus] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const addMainDish = () => {
     setMainDishes([...mainDishes, { name: '', amount: 1 }]);
@@ -72,6 +76,34 @@ export default function Home() {
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
+  };
+
+  // ฟังก์ชันบันทึกคะแนนไปยัง scoreboard
+  const saveToScoreboard = async (score) => {
+    try {
+      const response = await fetch('/api/scoreboard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          score,
+          mainDishes: mainDishes.filter(d => d.name.trim()),
+          sideDishes: sideDishes.filter(d => d.name.trim())
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setScoreboardStatus(data);
+        if (data.isNewRecord) {
+          showNotification(`🎉 สถิติใหม่! คะแนนสูงสุด ${score} คะแนน (${data.level.name})`, 'success');
+        }
+      }
+    } catch (error) {
+      console.error('Error saving to scoreboard:', error);
+    }
   };
 
 
@@ -299,36 +331,48 @@ export default function Home() {
     });
   };
 
-  const saveToHistory = () => {
+  const saveToHistory = async () => {
     if (totalScore === 0) {
       showNotification('กรุณากรอกข้อมูลอาหารก่อนบันทึก', 'error');
       return;
     }
 
-    const newRecord = {
-      id: Date.now(),
-      timestamp: new Date().toLocaleString('th-TH'),
-      level: currentLevel.name,
-      emoji: currentLevel.emoji,
-      totalScore: totalScore,
-      description: currentLevel.description,
-      mainDishes: mainDishes.filter(d => d.name.trim()),
-      sideDishes: sideDishes.filter(d => d.name.trim()),
-      breakdown: {
-        mainDishCount: mainDishes.filter(d => d.name.trim()).length,
-        sideDishCount: sideDishes.filter(d => d.name.trim()).length,
-        mainScore: mainDishes.reduce((total, dish) => total + (dish.name.trim() ? dish.amount * 2 : 0), 0),
-        sideScore: sideDishes.reduce((total, dish) => total + (dish.name.trim() ? dish.amount * 1 : 0), 0)
-      }
-    };
+    setIsSaving(true);
 
-    const updatedHistory = [newRecord, ...history.slice(0, 9)]; // เก็บแค่ 10 รายการล่าสุด
-    setHistory(updatedHistory);
+    try {
+      const newRecord = {
+        id: Date.now(),
+        timestamp: new Date().toLocaleString('th-TH'),
+        level: currentLevel.name,
+        emoji: currentLevel.emoji,
+        totalScore: totalScore,
+        description: currentLevel.description,
+        mainDishes: mainDishes.filter(d => d.name.trim()),
+        sideDishes: sideDishes.filter(d => d.name.trim()),
+        breakdown: {
+          mainDishCount: mainDishes.filter(d => d.name.trim()).length,
+          sideDishCount: sideDishes.filter(d => d.name.trim()).length,
+          mainScore: mainDishes.reduce((total, dish) => total + (dish.name.trim() ? dish.amount * 2 : 0), 0),
+          sideScore: sideDishes.reduce((total, dish) => total + (dish.name.trim() ? dish.amount * 1 : 0), 0)
+        }
+      };
 
-    // บันทึกลง localStorage
-    localStorage.setItem('foodScoreHistory', JSON.stringify(updatedHistory));
+      const updatedHistory = [newRecord, ...history.slice(0, 9)]; // เก็บแค่ 10 รายการล่าสุด
+      setHistory(updatedHistory);
 
-    showNotification('บันทึกประวัติเรียบร้อยแล้ว!');
+      // บันทึกลง localStorage
+      localStorage.setItem('foodScoreHistory', JSON.stringify(updatedHistory));
+
+      // บันทึกคะแนนไปยัง scoreboard
+      await saveToScoreboard(totalScore);
+
+      showNotification('🎉 บันทึกคะแนนและประวัติเรียบร้อยแล้ว!', 'success');
+    } catch (error) {
+      console.error('Error saving:', error);
+      showNotification('เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่', 'error');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const clearHistory = () => {
@@ -427,7 +471,10 @@ export default function Home() {
   const currentLevel = getScoreLevel(totalScore);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-base-200 via-base-100 to-base-200 p-4" data-theme="cupcake">
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-to-br from-base-200 via-base-100 to-base-200" data-theme="cupcake">
+        <Header />
+        <div className="p-4">
       {/* Notification Toast */}
       {notification && (
         <div className="toast toast-top toast-center z-50">
@@ -631,56 +678,99 @@ export default function Home() {
             >
               {currentLevel.name}
             </div>
+
+            {/* Scoreboard Status */}
+            {scoreboardStatus && (
+              <div className="mt-4">
+                {scoreboardStatus.isNewRecord ? (
+                  <div className="badge badge-success badge-lg gap-2">
+                    🎉 สถิติใหม่!
+                  </div>
+                ) : (
+                  <div className="text-sm text-base-content/60">
+                    สถิติสูงสุด: {scoreboardStatus.highestScore} คะแนน
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* ปุ่มแชร์ */}
-          <div className="flex flex-wrap gap-3 justify-center mt-6">
-            <button
-              onClick={copyShareLink}
-              disabled={totalScore === 0}
-              className={`btn btn-accent gap-2 shadow-lg transition-all duration-200 ${
-                totalScore === 0
-                  ? 'btn-disabled opacity-50 cursor-not-allowed'
-                  : 'hover:shadow-xl transform hover:scale-105'
-              }`}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-              </svg>
-              คัดลอกลิงก์แชร์
-            </button>
+          {/* Actions */}
+          <div className="space-y-4 mt-6">
+            {/* Primary Actions */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <button
+                onClick={saveToHistory}
+                disabled={totalScore === 0 || isSharedData || isSaving}
+                className={`btn btn-lg gap-3 shadow-xl transition-all duration-300 ${
+                  totalScore === 0 || isSharedData || isSaving
+                    ? 'btn-disabled opacity-50 cursor-not-allowed'
+                    : 'btn-success hover:btn-success hover:shadow-2xl transform hover:scale-105 active:scale-95'
+                }`}
+              >
+                {isSaving ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm"></span>
+                    กำลังบันทึก...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    {isSharedData ? 'ไม่สามารถบันทึกข้อมูลที่แชร์ได้' : 'บันทึกคะแนนและประวัติ'}
+                  </>
+                )}
+              </button>
 
+              <div className="tooltip" data-tip="ดูการจัดอันดับและคะแนนสูงสุดของผู้เล่นทั้งหมด">
+                <a
+                  href="/scoreboard"
+                  className="btn btn-lg btn-primary gap-3 shadow-xl transition-all duration-300 hover:shadow-2xl transform hover:scale-105 active:scale-95 group w-full"
+                >
+                  <svg className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  <span className="flex items-center gap-2">
+                    🏆 ดูตารางคะแนน
+                    <span className="badge badge-sm bg-white/20 text-white border-none">LIVE</span>
+                  </span>
+                </a>
+              </div>
+            </div>
 
+            {/* Secondary Actions */}
+            <div className="flex flex-wrap gap-3 justify-center">
+              <button
+                onClick={copyShareLink}
+                disabled={totalScore === 0}
+                className={`btn btn-accent gap-2 shadow-lg transition-all duration-200 ${
+                  totalScore === 0
+                    ? 'btn-disabled opacity-50 cursor-not-allowed'
+                    : 'hover:shadow-xl transform hover:scale-105'
+                }`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                คัดลอกลิงก์แชร์
+              </button>
 
-            <button
-              onClick={generateStatsImage}
-              disabled={totalScore === 0}
-              className={`btn btn-info gap-2 shadow-lg transition-all duration-200 ${
-                totalScore === 0
-                  ? 'btn-disabled opacity-50 cursor-not-allowed'
-                  : 'hover:shadow-xl transform hover:scale-105'
-              }`}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              สร้างภาพ
-            </button>
-
-            <button
-              onClick={saveToHistory}
-              disabled={totalScore === 0 || isSharedData}
-              className={`btn btn-warning gap-2 shadow-lg transition-all duration-200 ${
-                totalScore === 0 || isSharedData
-                  ? 'btn-disabled opacity-50 cursor-not-allowed'
-                  : 'hover:shadow-xl transform hover:scale-105'
-              }`}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              {isSharedData ? 'ไม่สามารถบันทึกข้อมูลที่แชร์' : 'บันทึกประวัติ'}
-            </button>
+              <button
+                onClick={generateStatsImage}
+                disabled={totalScore === 0}
+                className={`btn btn-info gap-2 shadow-lg transition-all duration-200 ${
+                  totalScore === 0
+                    ? 'btn-disabled opacity-50 cursor-not-allowed'
+                    : 'hover:shadow-xl transform hover:scale-105'
+                }`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                สร้างภาพ
+              </button>
+            </div>
           </div>
 
 
@@ -696,16 +786,16 @@ export default function Home() {
             </h3>
             <div className="space-y-3">
               <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
-                <span className="text-primary font-medium">🍛 อาหารหลัก:</span>
+                <span className="text-primary font-medium">🍛 อาหารหลัก</span>
                 <span className="badge badge-primary badge-lg">{mainDishes.filter(d => d.name.trim()).length} รายการ × 2 = {mainDishes.reduce((total, dish) => total + (dish.name.trim() ? dish.amount * 2 : 0), 0)} คะแนน</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-success/10 rounded-lg">
-                <span className="text-success font-medium">🥗 เครื่องเคียง:</span>
+                <span className="text-success font-medium">🥗 เครื่องเคียง</span>
                 <span className="badge badge-success badge-lg">{sideDishes.filter(d => d.name.trim()).length} รายการ × 1 = {sideDishes.reduce((total, dish) => total + (dish.name.trim() ? dish.amount * 1 : 0), 0)} คะแนน</span>
               </div>
               <div className="divider my-2"></div>
               <div className="flex justify-between items-center p-4 bg-accent/20 rounded-lg border-2 border-accent/30">
-                <span className="text-accent font-bold text-lg">🎯 คะแนนรวม:</span>
+                <span className="text-accent font-bold text-lg">🎯 คะแนนรวม</span>
                 <span className="badge badge-accent badge-lg text-lg font-bold">{totalScore} คะแนน</span>
               </div>
             </div>
@@ -811,7 +901,9 @@ export default function Home() {
             </div>
           </div>
         )}
+        </div>
       </div>
-    </div>
+      </div>
+    </ProtectedRoute>
   );
 }

@@ -1,5 +1,44 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
+# Food Score Calculator
+
+เครื่องคำนวณคะแนนอาหารที่มีระบบ Discord Authentication
+
+## Features
+
+- 🍽️ คำนวณคะแนนอาหารตามจำนวนและประเภท
+- 🔐 ระบบ Login ด้วย Discord OAuth
+- 📊 บันทึกและแชร์ประวัติการคำนวณ
+- 🎨 UI ที่สวยงามด้วย DaisyUI และ Tailwind CSS
+
+## การตั้งค่าก่อนใช้งาน
+
+### 1. ติดตั้ง Dependencies
+
+```bash
+npm install
+```
+
+### 2. ตั้งค่า Discord OAuth
+
+ดูรายละเอียดใน [DISCORD_SETUP.md](./DISCORD_SETUP.md)
+
+### 3. ตั้งค่า Environment Variables
+
+คัดลอกไฟล์ `.env.example` เป็น `.env.local` และกรอกข้อมูล:
+
+```bash
+cp .env.example .env.local
+```
+
+แก้ไขไฟล์ `.env.local`:
+```env
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your-random-secret-key
+DISCORD_CLIENT_ID=your-discord-client-id
+DISCORD_CLIENT_SECRET=your-discord-client-secret
+```
+
 ## Getting Started
 
 First, run the development server:
