@@ -116,7 +116,6 @@ export default function Scoreboard() {
         {lastUpdate && (
           <p className="text-xs text-base-content/50 mt-1">
             อัพเดทล่าสุด: {new Date(lastUpdate).toLocaleTimeString('th-TH')}
-            {usingFallback && <span className="text-orange-500 ml-2">(ข้อมูลชั่วคราว)</span>}
           </p>
         )}
       </div>
