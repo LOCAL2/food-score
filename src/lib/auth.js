@@ -16,28 +16,43 @@ export const authOptions = {
   callbacks: {
     async signIn({ user, account, profile, email, credentials }) {
       // ตรวจสอบว่า Discord OAuth สำเร็จ
-      if (account?.provider === "discord" && profile) {
-        return true
+      try {
+        if (account?.provider === "discord" && profile) {
+          return true
+        }
+        return false
+      } catch (error) {
+        console.error('SignIn callback error:', error)
+        return false
       }
-      return false
     },
     async session({ session, token }) {
-      // เพิ่มข้อมูล Discord ID ลงใน session
-      if (token?.discordId) {
-        session.user.id = token.discordId
-      } else if (token?.sub) {
-        session.user.id = token.sub
+      try {
+        // เพิ่มข้อมูล Discord ID ลงใน session
+        if (token?.discordId) {
+          session.user.id = token.discordId
+        } else if (token?.sub) {
+          session.user.id = token.sub
+        }
+        return session
+      } catch (error) {
+        console.error('Session callback error:', error)
+        return session
       }
-      return session
     },
     async jwt({ token, account, profile }) {
-      // เก็บข้อมูลเพิ่มเติมใน JWT token
-      if (account && profile) {
-        token.accessToken = account.access_token
-        token.discordId = profile.id
-        token.sub = profile.id
+      try {
+        // เก็บข้อมูลเพิ่มเติมใน JWT token
+        if (account && profile) {
+          token.accessToken = account.access_token
+          token.discordId = profile.id
+          token.sub = profile.id
+        }
+        return token
+      } catch (error) {
+        console.error('JWT callback error:', error)
+        return token
       }
-      return token
     }
   },
   pages: {
