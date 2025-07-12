@@ -13,6 +13,7 @@ export const authOptions = {
     })
   ],
   secret: process.env.NEXTAUTH_SECRET,
+  trustHost: true, // สำคัญสำหรับ Vercel
   callbacks: {
     async signIn({ user, account, profile, email, credentials }) {
       // ตรวจสอบว่า Discord OAuth สำเร็จ
@@ -61,6 +62,20 @@ export const authOptions = {
   },
   session: {
     strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   debug: process.env.NODE_ENV === 'development',
+  logger: {
+    error(code, metadata) {
+      console.error('NextAuth Error:', code, metadata)
+    },
+    warn(code) {
+      console.warn('NextAuth Warning:', code)
+    },
+    debug(code, metadata) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('NextAuth Debug:', code, metadata)
+      }
+    }
+  },
 }

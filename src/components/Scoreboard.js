@@ -108,6 +108,37 @@ export default function Scoreboard() {
     }
   }
 
+  const getTopMessage = (rank, isCurrentUser) => {
+    if (!isCurrentUser) return null
+
+    const messages = {
+      1: [
+        "คุณคือที่ 1 ของความหยั่ย! 👑",
+        "ราชาแห่งความหยั่ย! 👑",
+        "เจ้าแห่งความหยั่ยสุดยอด! 👑",
+        "ผู้ครองแชมป์ความหยั่ย! 👑"
+      ],
+      2: [
+        "คุณคือที่ 2 ของความหยั่ย! 🔥",
+        "รองแชมป์ความหยั่ย! 🔥",
+        "เกือบจะเป็นที่ 1 แล้ว! 🔥",
+        "ความหยั่ยระดับเทพ! 🔥"
+      ],
+      3: [
+        "คุณคือที่ 3 ของความหยั่ย! ⭐",
+        "ติดท็อป 3 ความหยั่ย! ⭐",
+        "ความหยั่ยระดับมาสเตอร์! ⭐",
+        "เก่งมากเลยนะ! ⭐"
+      ]
+    };
+
+    const rankMessages = messages[rank];
+    if (rankMessages) {
+      return rankMessages[Math.floor(Math.random() * rankMessages.length)];
+    }
+    return null;
+  }
+
   const getRankStyle = (rank) => {
     switch (rank) {
       case 1: return 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-white'
@@ -182,15 +213,28 @@ export default function Scoreboard() {
         </div>
       ) : (
         <div className="grid gap-4">
-          {leaderboard.map((entry) => (
-            <div
-              key={entry.userId}
-              className={`card shadow-lg border-2 transition-all duration-300 hover:shadow-xl ${
-                session?.user?.id === entry.userId || session?.user?.email === entry.userId
-                  ? 'border-primary bg-primary/5'
-                  : 'border-base-300 bg-base-100'
-              }`}
-            >
+          {leaderboard.map((entry) => {
+            const isCurrentUser = session?.user?.id === entry.userId || session?.user?.email === entry.userId
+            const topMessage = getTopMessage(entry.rank, isCurrentUser)
+
+            return (
+              <div key={entry.userId}>
+                {/* ข้อความพิเศษสำหรับ Top 3 */}
+                {topMessage && (
+                  <div className="mb-2 text-center">
+                    <div className="inline-block bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg animate-pulse">
+                      {topMessage}
+                    </div>
+                  </div>
+                )}
+
+                <div
+                  className={`card shadow-lg border-2 transition-all duration-300 hover:shadow-xl ${
+                    isCurrentUser
+                      ? 'border-primary bg-primary/5'
+                      : 'border-base-300 bg-base-100'
+                  }`}
+                >
               <div className="card-body p-4">
                 <div className="flex items-center gap-4">
                   {/* Rank */}

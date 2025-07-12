@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Header from '@/components/Header';
 
@@ -16,6 +17,7 @@ const SCORE_LEVELS = [
 ];
 
 export default function Home() {
+  const { data: session } = useSession();
   const [mainDishes, setMainDishes] = useState([{ name: '', amount: 1 }]);
   const [sideDishes, setSideDishes] = useState([{ name: '', amount: 1 }]);
   const [history, setHistory] = useState([]);
@@ -24,6 +26,7 @@ export default function Home() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [scoreboardStatus, setScoreboardStatus] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [userRank, setUserRank] = useState(null);
 
   const addMainDish = () => {
     setMainDishes([...mainDishes, { name: '', amount: 1 }]);
@@ -78,9 +81,82 @@ export default function Home() {
     setTimeout(() => setNotification(null), 3000);
   };
 
+  // ฟังก์ชันสำหรับข้อความ Top 3 แบบสุ่ม
+  const getTopMessage = (rank) => {
+    const messages = {
+      1: [
+        "🥇 คุณคือที่ 1 ของความหยั่ย! 👑",
+        "🥇 ราชาแห่งความหยั่ย! 👑",
+        "🥇 เจ้าแห่งความหยั่ยสุดยอด! 👑",
+        "🥇 ผู้ครองแชมป์ความหยั่ย! 👑"
+      ],
+      2: [
+        "🥈 คุณคือที่ 2 ของความหยั่ย! 🔥",
+        "🥈 รองแชมป์ความหยั่ย! 🔥",
+        "🥈 เกือบจะเป็นที่ 1 แล้ว! 🔥",
+        "🥈 ความหยั่ยระดับเทพ! 🔥"
+      ],
+      3: [
+        "🥉 คุณคือที่ 3 ของความหยั่ย! ⭐",
+        "🥉 ติดท็อป 3 ความหยั่ย! ⭐",
+        "🥉 ความหยั่ยระดับมาสเตอร์! ⭐",
+        "🥉 เก่งมากเลยนะ! ⭐"
+      ]
+    };
+
+    const rankMessages = messages[rank];
+    if (rankMessages) {
+      return rankMessages[Math.floor(Math.random() * rankMessages.length)];
+    }
+    return null;
+  };
+
+  // ฟังก์ชันดึงข้อมูล rank ของผู้ใช้
+  const fetchUserRank = async () => {
+    if (!session?.user) {
+      console.log('No session, skipping rank fetch');
+      return;
+    }
+
+    try {
+      console.log('Fetching user rank for:', session.user.id || session.user.email);
+      const response = await fetch('/api/scoreboard');
+      const data = await response.json();
+
+      console.log('Scoreboard data:', data);
+
+      if (data.success && data.leaderboard) {
+        const currentUser = data.leaderboard.find(entry =>
+          entry.userId === session.user.id || entry.userId === session.user.email
+        );
+
+        console.log('Current user found:', currentUser);
+
+        if (currentUser) {
+          setUserRank(currentUser.rank);
+          console.log('User rank set to:', currentUser.rank);
+        } else {
+          console.log('User not found in leaderboard');
+          setUserRank(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user rank:', error);
+    }
+  };
+
   // ฟังก์ชันบันทึกคะแนนไปยัง scoreboard
   const saveToScoreboard = async (score) => {
     try {
+      // ตรวจสอบและกรองข้อมูลให้ปลอดภัย
+      const validMainDishes = Array.isArray(mainDishes)
+        ? mainDishes.filter(d => d && typeof d === 'object' && d.name && d.name.trim())
+        : [];
+
+      const validSideDishes = Array.isArray(sideDishes)
+        ? sideDishes.filter(d => d && typeof d === 'object' && d.name && d.name.trim())
+        : [];
+
       const response = await fetch('/api/scoreboard', {
         method: 'POST',
         headers: {
@@ -88,8 +164,8 @@ export default function Home() {
         },
         body: JSON.stringify({
           score,
-          mainDishes: mainDishes.filter(d => d.name.trim()),
-          sideDishes: sideDishes.filter(d => d.name.trim())
+          mainDishes: validMainDishes,
+          sideDishes: validSideDishes
         })
       });
 
@@ -98,8 +174,12 @@ export default function Home() {
       if (data.success) {
         setScoreboardStatus(data);
         if (data.isNewRecord) {
-          showNotification(`🎉 สถิติใหม่! คะแนนสูงสุด ${score} คะแนน (${data.level.name})`, 'success');
+          showNotification(`🎉 สถิติใหม่! คะแนนสูงสุด ${score} คะแนน`, 'success');
+          // อัพเดท rank หลังจากบันทึกสถิติใหม่
+          setTimeout(fetchUserRank, 1000);
         }
+      } else {
+        console.error('Scoreboard API error:', data.error);
       }
     } catch (error) {
       console.error('Error saving to scoreboard:', error);
@@ -340,6 +420,15 @@ export default function Home() {
     setIsSaving(true);
 
     try {
+      // ตรวจสอบและกรองข้อมูลให้ปลอดภัย
+      const validMainDishes = Array.isArray(mainDishes)
+        ? mainDishes.filter(d => d && typeof d === 'object' && d.name && d.name.trim())
+        : [];
+
+      const validSideDishes = Array.isArray(sideDishes)
+        ? sideDishes.filter(d => d && typeof d === 'object' && d.name && d.name.trim())
+        : [];
+
       const newRecord = {
         id: Date.now(),
         timestamp: new Date().toLocaleString('th-TH'),
@@ -347,13 +436,13 @@ export default function Home() {
         emoji: currentLevel.emoji,
         totalScore: totalScore,
         description: currentLevel.description,
-        mainDishes: mainDishes.filter(d => d.name.trim()),
-        sideDishes: sideDishes.filter(d => d.name.trim()),
+        mainDishes: validMainDishes,
+        sideDishes: validSideDishes,
         breakdown: {
-          mainDishCount: mainDishes.filter(d => d.name.trim()).length,
-          sideDishCount: sideDishes.filter(d => d.name.trim()).length,
-          mainScore: mainDishes.reduce((total, dish) => total + (dish.name.trim() ? dish.amount * 2 : 0), 0),
-          sideScore: sideDishes.reduce((total, dish) => total + (dish.name.trim() ? dish.amount * 1 : 0), 0)
+          mainDishCount: validMainDishes.length,
+          sideDishCount: validSideDishes.length,
+          mainScore: validMainDishes.reduce((total, dish) => total + (dish.amount || 0) * 2, 0),
+          sideScore: validSideDishes.reduce((total, dish) => total + (dish.amount || 0) * 1, 0)
         }
       };
 
@@ -365,6 +454,11 @@ export default function Home() {
 
       // บันทึกคะแนนไปยัง scoreboard
       await saveToScoreboard(totalScore);
+
+      // อัพเดท rank หลังจากบันทึก
+      setTimeout(() => {
+        fetchUserRank();
+      }, 1000);
 
       showNotification('🎉 บันทึกคะแนนและประวัติเรียบร้อยแล้ว!', 'success');
     } catch (error) {
@@ -387,6 +481,11 @@ export default function Home() {
     const savedHistory = localStorage.getItem('foodScoreHistory');
     if (savedHistory) {
       setHistory(JSON.parse(savedHistory));
+    }
+
+    // ดึงข้อมูล rank เมื่อ login
+    if (session) {
+      fetchUserRank();
     }
 
     // ตรวจสอบ URL parameters สำหรับข้อมูลที่แชร์
@@ -474,6 +573,33 @@ export default function Home() {
     <ProtectedRoute>
       <div className="min-h-screen bg-gradient-to-br from-base-200 via-base-100 to-base-200" data-theme="cupcake">
         <Header />
+
+        {/* Debug Info */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="p-4 text-center">
+            <div className="bg-base-200 p-3 rounded-lg inline-block text-sm">
+              <div>Session: {session?.user?.name || 'No session'}</div>
+              <div>User ID: {session?.user?.id || session?.user?.email || 'No ID'}</div>
+              <div>Current Rank: {userRank || 'No rank'}</div>
+              <button
+                onClick={fetchUserRank}
+                className="btn btn-xs btn-primary mt-2"
+              >
+                Refresh Rank
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ข้อความพิเศษสำหรับ Top 3 */}
+        {userRank && userRank <= 3 && (
+          <div className="p-4 text-center">
+            <div className="inline-block bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-white px-6 py-3 rounded-full font-bold text-lg shadow-lg animate-bounce">
+              {getTopMessage(userRank)}
+            </div>
+          </div>
+        )}
+
         <div className="p-4">
       {/* Notification Toast */}
       {notification && (

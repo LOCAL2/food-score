@@ -77,7 +77,25 @@ export const getLeaderboard = async (limit = 10) => {
 
 // บันทึกคะแนน
 export const updateScore = async (userData) => {
-  const { userId, userName, userImage, score, mainDishCount, sideDishCount } = userData
+  // Validate input data
+  if (!userData || typeof userData !== 'object') {
+    throw new Error('Invalid user data')
+  }
+
+  const {
+    userId,
+    userName = 'Unknown User',
+    userImage = null,
+    score = 0,
+    mainDishCount = 0,
+    sideDishCount = 0
+  } = userData
+
+  // Validate required fields
+  if (!userId || typeof score !== 'number' || score < 0) {
+    throw new Error('Invalid user data: missing userId or invalid score')
+  }
+
   const isSupabaseAvailable = await checkSupabaseConnection()
   
   if (isSupabaseAvailable) {

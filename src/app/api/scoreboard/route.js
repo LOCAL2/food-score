@@ -50,13 +50,22 @@ export async function POST(request) {
     const userName = session.user.name || 'Unknown User'
     const userImage = session.user.image || null
 
+    // ตรวจสอบและกรองข้อมูลให้ปลอดภัย
+    const validMainDishes = Array.isArray(mainDishes)
+      ? mainDishes.filter(d => d && typeof d === 'object' && d.name && typeof d.name === 'string' && d.name.trim())
+      : [];
+
+    const validSideDishes = Array.isArray(sideDishes)
+      ? sideDishes.filter(d => d && typeof d === 'object' && d.name && typeof d.name === 'string' && d.name.trim())
+      : [];
+
     const result = await updateScore({
       userId,
       userName,
       userImage,
       score,
-      mainDishCount: mainDishes?.filter(d => d.name?.trim()).length || 0,
-      sideDishCount: sideDishes?.filter(d => d.name?.trim()).length || 0
+      mainDishCount: validMainDishes.length,
+      sideDishCount: validSideDishes.length
     })
 
     if (result.success) {
