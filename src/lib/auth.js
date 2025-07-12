@@ -5,10 +5,22 @@ export const authOptions = {
     DiscordProvider({
       clientId: process.env.DISCORD_CLIENT_ID,
       clientSecret: process.env.DISCORD_CLIENT_SECRET,
+      authorization: {
+        params: {
+          scope: "identify email"
+        }
+      }
     })
   ],
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
+    async signIn({ user, account, profile, email, credentials }) {
+      // ตรวจสอบว่า Discord OAuth สำเร็จ
+      if (account?.provider === "discord" && profile) {
+        return true
+      }
+      return false
+    },
     async session({ session, token }) {
       // เพิ่มข้อมูล Discord ID ลงใน session
       if (token?.discordId) {
