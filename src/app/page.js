@@ -572,7 +572,7 @@ export default function Home() {
       // Fallback polling สำหรับ rank ทุก 15 วินาที
       const rankInterval = setInterval(() => {
         fetchUserRank(true); // silent mode สำหรับ polling
-      }, 15000);
+      }, 1500);
 
       // Cleanup interval และ subscription เมื่อ component unmount หรือ session เปลี่ยน
       return () => {
