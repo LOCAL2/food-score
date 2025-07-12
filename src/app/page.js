@@ -88,7 +88,7 @@ export default function Home() {
   const getTopMessage = (rank) => {
     const messages = {
       1: [
-        "🥇 คุณคือที่ 1 ของความหยั่ย!",
+        "🥇 ราชาแห่งความหยั่ย!",
       ],
       2: [
         "🥈 คุณคือที่ 2 ของความหยั่ย!",
@@ -103,6 +103,17 @@ export default function Home() {
       return rankMessages[Math.floor(Math.random() * rankMessages.length)];
     }
     return null;
+  };
+
+  // ฟังก์ชันสำหรับข้อความกำลังใจสำหรับอันดับอื่นๆ
+  const getEncouragementMessage = (rank) => {
+    if (rank <= 10) {
+      return `🔥 อันดับที่ ${rank} - ใกล้ท็อป 3 แล้ว!`;
+    } else if (rank <= 20) {
+      return `💪 อันดับที่ ${rank} - สู้ต่อไป!`;
+    } else {
+      return `🎯 อันดับที่ ${rank} - พยายามต่อไป!`;
+    }
   };
 
   // ฟังก์ชันดึงข้อมูล rank ของผู้ใช้
@@ -482,10 +493,18 @@ export default function Home() {
       // บันทึกคะแนนไปยัง scoreboard
       await saveToScoreboard(totalScore);
 
-      // อัพเดท rank หลังจากบันทึก
+      // อัพเดท rank ทันทีหลังจากบันทึก (หลายครั้งเพื่อให้แน่ใจ)
       setTimeout(() => {
-        fetchUserRank();
-      }, 1000);
+        fetchUserRank(false); // ไม่ silent เพื่อแสดงการเปลี่ยนแปลง
+      }, 500);
+
+      setTimeout(() => {
+        fetchUserRank(true); // silent check หลัง 2 วินาที
+      }, 2000);
+
+      setTimeout(() => {
+        fetchUserRank(true); // silent check หลัง 5 วินาที (เผื่อ delay)
+      }, 5000);
 
       showNotification('🎉 บันทึกคะแนนและประวัติเรียบร้อยแล้ว!', 'success');
     } catch (error) {
@@ -509,10 +528,15 @@ export default function Home() {
     if (savedHistory) {
       setHistory(JSON.parse(savedHistory));
     }
+  }, []);
 
-    // ดึงข้อมูล rank เมื่อ login
+  // useEffect แยกสำหรับ session เพื่อตรวจสอบอันดับทันทีหลัง login
+  useEffect(() => {
     if (session) {
-      fetchUserRank();
+      console.log('Session detected, fetching rank immediately...');
+
+      // ดึงข้อมูล rank ทันทีหลัง login (ไม่ silent เพื่อแสดง loading)
+      fetchUserRank(false);
 
       // ลอง setup Supabase real-time subscription
       let subscription = null;
@@ -545,10 +569,10 @@ export default function Home() {
 
       setupRealtimeSubscription();
 
-      // Fallback polling สำหรับ rank ทุก 10 วินาที (ลดลงเพราะมี real-time)
+      // Fallback polling สำหรับ rank ทุก 15 วินาที
       const rankInterval = setInterval(() => {
         fetchUserRank(true); // silent mode สำหรับ polling
-      }, 10000);
+      }, 15000);
 
       // Cleanup interval และ subscription เมื่อ component unmount หรือ session เปลี่ยน
       return () => {
@@ -557,7 +581,15 @@ export default function Home() {
         }
         clearInterval(rankInterval);
       };
+    } else {
+      // ถ้าไม่มี session ให้ clear rank
+      setUserRank(null);
+      setLastRankUpdate(null);
     }
+  }, [session]); // dependency เฉพาะ session
+
+  // useEffect สำหรับ URL parameters
+  useEffect(() => {
 
     // ตรวจสอบ URL parameters สำหรับข้อมูลที่แชร์
     const urlParams = new URLSearchParams(window.location.search);
@@ -674,11 +706,26 @@ export default function Home() {
         )}
 
         {/* ข้อความพิเศษสำหรับ Top 3 */}
-        {userRank && userRank <= 3 && (
+        {session && (
           <div className="p-4 text-center">
-            <div className="inline-block bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-white px-6 py-3 rounded-full font-bold text-lg shadow-lg animate-bounce">
-              {getTopMessage(userRank)}
-            </div>
+            {isRankLoading && !userRank ? (
+              <div className="inline-block bg-base-200 px-6 py-3 rounded-full font-bold text-lg shadow-lg">
+                <span className="loading loading-spinner loading-sm mr-2"></span>
+                กำลังตรวจสอบอันดับ...
+              </div>
+            ) : userRank && userRank <= 3 ? (
+              <div className="inline-block bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-white px-6 py-3 rounded-full font-bold text-lg shadow-lg animate-bounce">
+                {getTopMessage(userRank)}
+              </div>
+            ) : userRank && userRank > 3 ? (
+              <div className="inline-block bg-base-200 px-6 py-3 rounded-full font-bold text-lg shadow-lg">
+                {getEncouragementMessage(userRank)}
+              </div>
+            ) : !isRankLoading && !userRank && session ? (
+              <div className="inline-block bg-info/20 text-info px-6 py-3 rounded-full font-bold text-lg shadow-lg">
+                🌟 บันทึกคะแนนแรกเพื่อเข้าสู่การแข่งขัน!
+              </div>
+            ) : null}
           </div>
         )}
 

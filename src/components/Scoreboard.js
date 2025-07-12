@@ -49,7 +49,7 @@ export default function Scoreboard() {
     // Fallback polling ทุก 2 วินาที (ลดลงจาก 100ms เพื่อประสิทธิภาพ)
     const intervalId = setInterval(() => {
       fetchLeaderboard(true) // silent update
-    }, 2000)
+    }, 1000)
 
     return () => {
       if (subscription && supabase) {
