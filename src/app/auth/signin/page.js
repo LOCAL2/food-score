@@ -22,9 +22,21 @@ export default function SignIn() {
   const handleDiscordSignIn = async () => {
     setIsLoading(true)
     try {
-      await signIn('discord', { callbackUrl: '/' })
+      const result = await signIn('discord', {
+        callbackUrl: '/',
+        redirect: false
+      })
+
+      if (result?.error) {
+        console.error('Sign in error:', result.error)
+        // แสดง error message 3ผู้ใช้
+        alert('เกิดข้อผิดพลาดในการเข้าสู่ระบบ: ' + result.error)
+      } else if (result?.url) {
+        window.location.href = result.url
+      }
     } catch (error) {
       console.error('Sign in error:', error)
+      alert('เกิดข้อผิดพลาดในการเข้าสู่ระบบ')
     } finally {
       setIsLoading(false)
     }

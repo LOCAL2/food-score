@@ -7,6 +7,7 @@ export const authOptions = {
       clientSecret: process.env.DISCORD_CLIENT_SECRET,
     })
   ],
+  secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
     async session({ session, token }) {
       // เพิ่มข้อมูล Discord ID ลงใน session
@@ -34,4 +35,5 @@ export const authOptions = {
   session: {
     strategy: 'jwt',
   },
+  debug: process.env.NODE_ENV === 'development',
 }

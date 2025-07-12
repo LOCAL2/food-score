@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import SessionProvider from "@/components/SessionProvider";
+import EnvCheck from "@/components/EnvCheck";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,6 +26,7 @@ export default function RootLayout({ children }) {
       >
         <SessionProvider>
           {children}
+          <EnvCheck />
         </SessionProvider>
       </body>
     </html>
