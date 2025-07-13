@@ -103,37 +103,50 @@ export const updateScore = async (userData) => {
       // ตรวจสอบคะแนนเดิม
       const { data: existingData, error: selectError } = await supabase
         .from('scoreboard')
-        .select('highest_score')
+        .select('highest_score, current_score')
         .eq('user_id', userId)
         .single()
 
-      const isNewRecord = !existingData || score > existingData.highest_score
-      const finalHighestScore = isNewRecord ? score : existingData.highest_score
+      console.log('Existing data:', existingData)
+      console.log('New score:', score)
+
+      const isNewRecord = !existingData || score > (existingData.highest_score || 0)
+      const finalHighestScore = isNewRecord ? score : (existingData.highest_score || 0)
+
+      console.log('Is new record:', isNewRecord)
+      console.log('Final highest score:', finalHighestScore)
 
       // บันทึกคะแนนทุกครั้ง (อัพเดท highest_score เฉพาะเมื่อสูงกว่าเดิม)
+      const updateData = {
+        user_id: userId,
+        user_name: userName,
+        user_image: userImage,
+        highest_score: finalHighestScore, // เก็บคะแนนสูงสุด
+        current_score: score, // เก็บคะแนนล่าสุดทุกครั้ง
+        achieved_at: new Date().toISOString(), // อัพเดทเวลาทุกครั้ง
+        main_dish_count: mainDishCount, // อัพเดทข้อมูลล่าสุด
+        side_dish_count: sideDishCount // อัพเดทข้อมูลล่าสุด
+      }
+
+      console.log('Update data:', updateData)
+
       const { data, error } = await supabase
         .from('scoreboard')
-        .upsert({
-          user_id: userId,
-          user_name: userName,
-          user_image: userImage,
-          highest_score: finalHighestScore, // เก็บคะแนนสูงสุด
-          current_score: score, // เก็บคะแนนล่าสุดทุกครั้ง
-          achieved_at: new Date().toISOString(), // อัพเดทเวลาทุกครั้ง
-          main_dish_count: mainDishCount, // อัพเดทข้อมูลล่าสุด
-          side_dish_count: sideDishCount // อัพเดทข้อมูลล่าสุด
-        })
+        .upsert(updateData)
         .select()
         .single()
 
       if (error) throw error
+
+      console.log('Supabase update result:', data)
 
       return {
         success: true,
         isNewRecord: isNewRecord,
         data: {
           highestScore: finalHighestScore,
-          currentScore: score
+          currentScore: score,
+          updatedData: data
         }
       }
     } catch (error) {
