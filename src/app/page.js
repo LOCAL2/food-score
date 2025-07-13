@@ -199,12 +199,9 @@ export default function Home() {
       const data = await response.json();
 
       if (data.success) {
+        console.log('Scoreboard API response:', data);
         setScoreboardStatus(data);
-        if (data.isNewRecord) {
-          showNotification(`🎉 สถิติใหม่! คะแนนสูงสุด ${data.highestScore} คะแนน`, 'success');
-        } else {
-          showNotification(`📊 บันทึกคะแนน ${score} คะแนนแล้ว (สถิติ: ${data.highestScore})`, 'info');
-        }
+        showNotification(`🎉 บันทึกคะแนน ${score} คะแนนเรียบร้อยแล้ว!`, 'success');
 
         // อัพเดท rank ทันทีหลังจากบันทึกคะแนน (ทุกครั้ง)
         setTimeout(() => {

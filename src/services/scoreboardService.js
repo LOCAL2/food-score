@@ -39,9 +39,8 @@ export const getLeaderboard = async (limit = 10) => {
         userId: entry.user_id,
         userName: entry.user_name,
         userImage: entry.user_image,
-        highestScore: entry.current_score || entry.highest_score, // ใช้คะแนนล่าสุดสำหรับการแสดงผล
+        highestScore: entry.current_score || entry.highest_score, // คะแนนล่าสุด
         currentScore: entry.current_score || entry.highest_score, // คะแนนล่าสุด
-        bestScore: entry.highest_score, // คะแนนสูงสุดที่เคยทำได้
         achievedAt: entry.achieved_at,
         mainDishCount: entry.main_dish_count,
         sideDishCount: entry.side_dish_count,
@@ -66,8 +65,7 @@ export const getLeaderboard = async (limit = 10) => {
     .slice(0, limit)
     .map((entry, index) => ({
       ...entry,
-      highestScore: entry.currentScore || entry.highestScore, // ใช้คะแนนล่าสุดสำหรับการแสดงผล
-      bestScore: entry.highestScore, // คะแนนสูงสุดที่เคยทำได้
+      highestScore: entry.currentScore || entry.highestScore, // คะแนนล่าสุด
       rank: index + 1,
       level: getScoreLevel(entry.currentScore || entry.highestScore) // ใช้คะแนนล่าสุดสำหรับ level
     }))
@@ -104,29 +102,15 @@ export const updateScore = async (userData) => {
   
   if (isSupabaseAvailable) {
     try {
-      // ตรวจสอบคะแนนเดิม
-      const { data: existingData, error: selectError } = await supabase
-        .from('scoreboard')
-        .select('highest_score, current_score')
-        .eq('user_id', userId)
-        .single()
-
-      console.log('Existing data:', existingData)
       console.log('New score:', score)
 
-      const isNewRecord = !existingData || score > (existingData.highest_score || 0)
-      const finalHighestScore = isNewRecord ? score : (existingData.highest_score || 0)
-
-      console.log('Is new record:', isNewRecord)
-      console.log('Final highest score:', finalHighestScore)
-
-      // บันทึกคะแนนทุกครั้ง (อัพเดท highest_score เฉพาะเมื่อสูงกว่าเดิม)
+      // บันทึกคะแนนล่าสุดทุกครั้ง (ไม่เก็บสถิติสูงสุด)
       const updateData = {
         user_id: userId,
         user_name: userName,
         user_image: userImage,
-        highest_score: finalHighestScore, // เก็บคะแนนสูงสุด
-        current_score: score, // เก็บคะแนนล่าสุดทุกครั้ง
+        highest_score: score, // ใช้คะแนนล่าสุด
+        current_score: score, // ใช้คะแนนล่าสุด
         achieved_at: new Date().toISOString(), // อัพเดทเวลาทุกครั้ง
         main_dish_count: mainDishCount, // อัพเดทข้อมูลล่าสุด
         side_dish_count: sideDishCount // อัพเดทข้อมูลล่าสุด
@@ -146,10 +130,10 @@ export const updateScore = async (userData) => {
 
       return {
         success: true,
-        isNewRecord: isNewRecord,
+        isNewRecord: true, // ถือว่าเป็น record ใหม่ทุกครั้ง
         data: {
-          highestScore: finalHighestScore,
-          currentScore: score,
+          highestScore: score, // คะแนนล่าสุด
+          currentScore: score, // คะแนนล่าสุด
           updatedData: data
         }
       }
@@ -160,16 +144,12 @@ export const updateScore = async (userData) => {
   }
 
   // ใช้ fallback storage
-  const existingData = fallbackScoreboardData.get(userId)
-  const isNewRecord = !existingData || score > existingData.highestScore
-  const finalHighestScore = isNewRecord ? score : existingData.highestScore
-
-  // บันทึกข้อมูลทุกครั้ง (อัพเดท highest_score เฉพาะเมื่อสูงกว่าเดิม)
+  // บันทึกคะแนนล่าสุดทุกครั้ง (ไม่เก็บสถิติสูงสุด)
   fallbackScoreboardData.set(userId, {
     userId,
     userName,
     userImage,
-    highestScore: finalHighestScore, // คะแนนสูงสุด
+    highestScore: score, // คะแนนล่าสุด
     currentScore: score, // คะแนนล่าสุด
     achievedAt: new Date().toISOString(), // อัพเดทเวลาทุกครั้ง
     mainDishCount,
@@ -178,10 +158,10 @@ export const updateScore = async (userData) => {
 
   return {
     success: true,
-    isNewRecord: isNewRecord,
+    isNewRecord: true, // ถือว่าเป็น record ใหม่ทุกครั้ง
     data: {
-      highestScore: finalHighestScore,
-      currentScore: score
+      highestScore: score, // คะแนนล่าสุด
+      currentScore: score // คะแนนล่าสุด
     }
   }
 }

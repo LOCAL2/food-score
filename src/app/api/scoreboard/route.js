@@ -39,7 +39,13 @@ export async function POST(request) {
 
     const { score, mainDishes, sideDishes } = await request.json()
 
+    console.log('=== SCOREBOARD API DEBUG ===')
+    console.log('Received score:', score)
+    console.log('User ID:', session.user.id || session.user.email)
+    console.log('User name:', session.user.name)
+
     if (typeof score !== 'number' || score < 0) {
+      console.log('Invalid score detected:', score)
       return NextResponse.json(
         { success: false, error: 'Invalid score' },
         { status: 400 }
@@ -59,6 +65,15 @@ export async function POST(request) {
       ? sideDishes.filter(d => d && typeof d === 'object' && d.name && typeof d.name === 'string' && d.name.trim())
       : [];
 
+    console.log('Calling updateScore with:', {
+      userId,
+      userName,
+      userImage,
+      score,
+      mainDishCount: validMainDishes.length,
+      sideDishCount: validSideDishes.length
+    })
+
     const result = await updateScore({
       userId,
       userName,
@@ -68,8 +83,10 @@ export async function POST(request) {
       sideDishCount: validSideDishes.length
     })
 
+    console.log('updateScore result:', result)
+
     if (result.success) {
-      return NextResponse.json({
+      const response = {
         success: true,
         message: result.isNewRecord ? 'New high score recorded!' : 'Score recorded',
         isNewRecord: result.isNewRecord,
@@ -77,8 +94,11 @@ export async function POST(request) {
         currentScore: score, // คะแนนปัจจุบันที่บันทึก
         highestScore: result.data.highestScore, // คะแนนสูงสุดที่เคยทำได้
         timestamp: new Date().toISOString()
-      })
+      }
+      console.log('API Response:', response)
+      return NextResponse.json(response)
     } else {
+      console.log('updateScore failed:', result)
       throw new Error('Failed to update score')
     }
   } catch (error) {
