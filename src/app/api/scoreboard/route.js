@@ -74,7 +74,8 @@ export async function POST(request) {
         message: result.isNewRecord ? 'New high score recorded!' : 'Score recorded',
         isNewRecord: result.isNewRecord,
         score,
-        highestScore: result.data.highestScore,
+        currentScore: score, // คะแนนปัจจุบันที่บันทึก
+        highestScore: result.data.highestScore, // คะแนนสูงสุดที่เคยทำได้
         timestamp: new Date().toISOString()
       })
     } else {

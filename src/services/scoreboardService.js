@@ -108,35 +108,32 @@ export const updateScore = async (userData) => {
         .single()
 
       const isNewRecord = !existingData || score > existingData.highest_score
+      const finalHighestScore = isNewRecord ? score : existingData.highest_score
 
-      if (isNewRecord) {
-        // อัพเดทหรือสร้างใหม่
-        const { data, error } = await supabase
-          .from('scoreboard')
-          .upsert({
-            user_id: userId,
-            user_name: userName,
-            user_image: userImage,
-            highest_score: score,
-            achieved_at: new Date().toISOString(),
-            main_dish_count: mainDishCount,
-            side_dish_count: sideDishCount
-          })
-          .select()
-          .single()
+      // บันทึกคะแนนทุกครั้ง (อัพเดท highest_score เฉพาะเมื่อสูงกว่าเดิม)
+      const { data, error } = await supabase
+        .from('scoreboard')
+        .upsert({
+          user_id: userId,
+          user_name: userName,
+          user_image: userImage,
+          highest_score: finalHighestScore, // เก็บคะแนนสูงสุด
+          current_score: score, // เก็บคะแนนล่าสุดทุกครั้ง
+          achieved_at: new Date().toISOString(), // อัพเดทเวลาทุกครั้ง
+          main_dish_count: mainDishCount, // อัพเดทข้อมูลล่าสุด
+          side_dish_count: sideDishCount // อัพเดทข้อมูลล่าสุด
+        })
+        .select()
+        .single()
 
-        if (error) throw error
+      if (error) throw error
 
-        return {
-          success: true,
-          isNewRecord: true,
-          data: { highestScore: score }
-        }
-      } else {
-        return {
-          success: true,
-          isNewRecord: false,
-          data: existingData
+      return {
+        success: true,
+        isNewRecord: isNewRecord,
+        data: {
+          highestScore: finalHighestScore,
+          currentScore: score
         }
       }
     } catch (error) {
@@ -147,28 +144,27 @@ export const updateScore = async (userData) => {
 
   // ใช้ fallback storage
   const existingData = fallbackScoreboardData.get(userId)
-  
-  if (!existingData || score > existingData.highestScore) {
-    fallbackScoreboardData.set(userId, {
-      userId,
-      userName,
-      userImage,
-      highestScore: score,
-      achievedAt: new Date().toISOString(),
-      mainDishCount,
-      sideDishCount
-    })
-    
-    return {
-      success: true,
-      isNewRecord: true,
-      data: { highestScore: score }
-    }
-  } else {
-    return {
-      success: true,
-      isNewRecord: false,
-      data: existingData
+  const isNewRecord = !existingData || score > existingData.highestScore
+  const finalHighestScore = isNewRecord ? score : existingData.highestScore
+
+  // บันทึกข้อมูลทุกครั้ง (อัพเดท highest_score เฉพาะเมื่อสูงกว่าเดิม)
+  fallbackScoreboardData.set(userId, {
+    userId,
+    userName,
+    userImage,
+    highestScore: finalHighestScore, // คะแนนสูงสุด
+    currentScore: score, // คะแนนล่าสุด
+    achievedAt: new Date().toISOString(), // อัพเดทเวลาทุกครั้ง
+    mainDishCount,
+    sideDishCount
+  })
+
+  return {
+    success: true,
+    isNewRecord: isNewRecord,
+    data: {
+      highestScore: finalHighestScore,
+      currentScore: score
     }
   }
 }
