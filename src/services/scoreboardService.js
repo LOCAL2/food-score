@@ -28,8 +28,8 @@ export const getLeaderboard = async (limit = 10) => {
       const { data, error } = await supabase
         .from('scoreboard')
         .select('*')
-        .order('highest_score', { ascending: false })
-        .order('achieved_at', { ascending: true })
+        .order('current_score', { ascending: false }) // เรียงตามคะแนนล่าสุด
+        .order('achieved_at', { ascending: true }) // ถ้าคะแนนเท่ากัน เรียงตามเวลา
         .limit(limit)
 
       if (error) throw error
@@ -39,12 +39,14 @@ export const getLeaderboard = async (limit = 10) => {
         userId: entry.user_id,
         userName: entry.user_name,
         userImage: entry.user_image,
-        highestScore: entry.highest_score,
+        highestScore: entry.current_score || entry.highest_score, // ใช้คะแนนล่าสุดสำหรับการแสดงผล
+        currentScore: entry.current_score || entry.highest_score, // คะแนนล่าสุด
+        bestScore: entry.highest_score, // คะแนนสูงสุดที่เคยทำได้
         achievedAt: entry.achieved_at,
         mainDishCount: entry.main_dish_count,
         sideDishCount: entry.side_dish_count,
         rank: index + 1,
-        level: getScoreLevel(entry.highest_score)
+        level: getScoreLevel(entry.current_score || entry.highest_score) // ใช้คะแนนล่าสุดสำหรับ level
       }))
 
       return {
@@ -60,12 +62,14 @@ export const getLeaderboard = async (limit = 10) => {
 
   // ใช้ fallback storage
   const leaderboardData = Array.from(fallbackScoreboardData.values())
-    .sort((a, b) => b.highestScore - a.highestScore)
+    .sort((a, b) => (b.currentScore || b.highestScore) - (a.currentScore || a.highestScore)) // เรียงตามคะแนนล่าสุด
     .slice(0, limit)
     .map((entry, index) => ({
       ...entry,
+      highestScore: entry.currentScore || entry.highestScore, // ใช้คะแนนล่าสุดสำหรับการแสดงผล
+      bestScore: entry.highestScore, // คะแนนสูงสุดที่เคยทำได้
       rank: index + 1,
-      level: getScoreLevel(entry.highestScore)
+      level: getScoreLevel(entry.currentScore || entry.highestScore) // ใช้คะแนนล่าสุดสำหรับ level
     }))
 
   return {
