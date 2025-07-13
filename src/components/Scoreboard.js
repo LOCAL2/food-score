@@ -252,13 +252,8 @@ export default function Scoreboard() {
                           {entry.highestScore}
                         </div>
                         <div className="text-sm text-base-content/70">
-                          คะแนนล่าสุด
+                          คะแนน
                         </div>
-                        {entry.bestScore && entry.bestScore !== entry.highestScore && (
-                          <div className="text-xs text-base-content/50">
-                            สถิติ: {entry.bestScore}
-                          </div>
-                        )}
                         <div className="text-xs text-base-content/50">
                           🍛 {entry.mainDishCount} | 🥗 {entry.sideDishCount}
                         </div>
