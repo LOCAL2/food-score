@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { supabase } from '@/lib/supabase'
+import { formatNumber } from '@/utils/formatNumber'
 
 export default function Scoreboard() {
   const [leaderboard, setLeaderboard] = useState([])
@@ -249,7 +250,7 @@ export default function Scoreboard() {
                       {/* Score */}
                       <div className="text-right">
                         <div className="text-2xl font-bold text-primary">
-                          {entry.highestScore}
+                          {formatNumber(entry.highestScore)}
                         </div>
                         <div className="text-sm text-base-content/70">
                           คะแนน

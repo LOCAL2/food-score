@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { supabase } from '@/lib/supabase';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Header from '@/components/Header';
+import { formatNumber } from '@/utils/formatNumber';
 
 const SCORE_LEVELS = [
   { maxScore: 4, name: "Normal", emoji: "😊", color: "#96ceb4" },
@@ -272,7 +273,7 @@ export default function Home() {
     // คะแนน
     ctx.font = 'bold 48px Arial';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(`${totalScore} คะแนน`, canvas.width / 2, 320);
+    ctx.fillText(`${formatNumber(totalScore)} คะแนน`, canvas.width / 2, 320);
 
     // คำอธิบาย
     ctx.fillStyle = '#ffffff';
@@ -286,8 +287,8 @@ export default function Home() {
     const sideScore = sideDishes.reduce((total, dish) => total + (dish.name.trim() ? dish.amount * 1 : 0), 0);
 
     ctx.font = 'bold 20px Arial';
-    ctx.fillText(`🍛 อาหารหลัก ${mainDishCount} รายการ (${mainScore} คะแนน)`, canvas.width / 2, 430);
-    ctx.fillText(`🥗 เครื่องเคียง ${sideDishCount} รายการ (${sideScore} คะแนน)`, canvas.width / 2, 460);
+    ctx.fillText(`🍛 อาหารหลัก ${mainDishCount} รายการ (${formatNumber(mainScore)} คะแนน)`, canvas.width / 2, 430);
+    ctx.fillText(`🥗 เครื่องเคียง ${sideDishCount} รายการ (${formatNumber(sideScore)} คะแนน)`, canvas.width / 2, 460);
 
     // วันที่
     ctx.font = '16px Arial';
@@ -426,8 +427,8 @@ export default function Home() {
     ctx.fillText(record.description || '', canvas.width / 2, 370);
 
     ctx.font = 'bold 20px Arial';
-    ctx.fillText(`🍛 อาหารหลัก ${record.breakdown?.mainDishCount || 0} รายการ (${record.breakdown?.mainScore || 0} คะแนน)`, canvas.width / 2, 430);
-    ctx.fillText(`🥗 เครื่องเคียง ${record.breakdown?.sideDishCount || 0} รายการ (${record.breakdown?.sideScore || 0} คะแนน)`, canvas.width / 2, 460);
+    ctx.fillText(`🍛 อาหารหลัก ${record.breakdown?.mainDishCount || 0} รายการ (${formatNumber(record.breakdown?.mainScore || 0)} คะแนน)`, canvas.width / 2, 430);
+    ctx.fillText(`🥗 เครื่องเคียง ${record.breakdown?.sideDishCount || 0} รายการ (${formatNumber(record.breakdown?.sideScore || 0)} คะแนน)`, canvas.width / 2, 460);
 
     ctx.font = '16px Arial';
     ctx.fillStyle = '#cccccc';
@@ -922,7 +923,7 @@ export default function Home() {
               className="text-4xl font-bold mb-2"
               style={{ color: currentLevel.color }}
             >
-              {totalScore} คะแนน
+              {formatNumber(totalScore)} คะแนน
             </div>
             <div
               className="text-2xl font-semibold mb-2"
@@ -1048,7 +1049,7 @@ export default function Home() {
               <div className="divider my-2"></div>
               <div className="flex justify-between items-center p-4 bg-accent/20 rounded-lg border-2 border-accent/30">
                 <span className="text-accent font-bold text-lg">🎯 คะแนนรวม</span>
-                <span className="badge badge-accent badge-lg text-lg font-bold">{totalScore} คะแนน</span>
+                <span className="badge badge-accent badge-lg text-lg font-bold">{formatNumber(totalScore)} คะแนน</span>
               </div>
             </div>
           </div>
@@ -1079,7 +1080,7 @@ export default function Home() {
                         <span className="text-2xl">{record.emoji}</span>
                         <div>
                           <div className="font-bold text-lg" style={{ color: record.level === 'Elephant Food' ? '#6c5ce7' : 'inherit' }}>
-                            {record.level} - {record.totalScore} คะแนน
+                            {record.level} - {formatNumber(record.totalScore)} คะแนน
                           </div>
                           <div className="text-sm text-base-content/70">
                             {record.timestamp}
@@ -1094,10 +1095,10 @@ export default function Home() {
 
                     <div className="flex gap-4 text-xs mb-3">
                       <span className="badge badge-primary badge-sm">
-                        🍛 {record.breakdown.mainDishCount} รายการ ({record.breakdown.mainScore} คะแนน)
+                        🍛 {record.breakdown.mainDishCount} รายการ ({formatNumber(record.breakdown.mainScore)} คะแนน)
                       </span>
                       <span className="badge badge-success badge-sm">
-                        🥗 {record.breakdown.sideDishCount} รายการ ({record.breakdown.sideScore} คะแนน)
+                        🥗 {record.breakdown.sideDishCount} รายการ ({formatNumber(record.breakdown.sideScore)} คะแนน)
                       </span>
                     </div>
 
