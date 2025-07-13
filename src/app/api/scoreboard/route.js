@@ -88,12 +88,18 @@ export async function POST(request) {
     if (result.success) {
       const response = {
         success: true,
-        message: result.isNewRecord ? 'New high score recorded!' : 'Score recorded',
+        message: `Score ${score} recorded successfully!`,
         isNewRecord: result.isNewRecord,
         score,
         currentScore: score, // คะแนนปัจจุบันที่บันทึก
-        highestScore: result.data.highestScore, // คะแนนสูงสุดที่เคยทำได้
-        timestamp: new Date().toISOString()
+        highestScore: result.data.highestScore, // คะแนนล่าสุด
+        timestamp: new Date().toISOString(),
+        debug: {
+          userId,
+          userName,
+          scoreReceived: score,
+          updateData: result.data.updatedData
+        }
       }
       console.log('API Response:', response)
       return NextResponse.json(response)

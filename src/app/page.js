@@ -132,8 +132,6 @@ export default function Home() {
       const response = await fetch('/api/scoreboard');
       const data = await response.json();
 
-      console.log('Scoreboard data:', data);
-
       if (data.success && data.leaderboard) {
         const currentUser = data.leaderboard.find(entry =>
           entry.userId === session.user.id || entry.userId === session.user.email

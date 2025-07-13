@@ -103,28 +103,51 @@ export const updateScore = async (userData) => {
     try {
       console.log('New score:', score)
 
-      // บันทึกคะแนนล่าสุดใน current_score เท่านั้น
-      const updateData = {
-        user_id: userId,
-        user_name: userName,
-        user_image: userImage,
-        current_score: score, // บันทึกคะแนนล่าสุดใน current_score
-        achieved_at: new Date().toISOString(), // อัพเดทเวลาทุกครั้ง
-        main_dish_count: mainDishCount, // อัพเดทข้อมูลล่าสุด
-        side_dish_count: sideDishCount // อัพเดทข้อมูลล่าสุด
+      // ลองอัพเดทก่อน ถ้าไม่มีค่อย insert
+      const { data: updateResult, error: updateError } = await supabase
+        .from('scoreboard')
+        .update({
+          user_name: userName,
+          user_image: userImage,
+          current_score: score,
+          achieved_at: new Date().toISOString(),
+          main_dish_count: mainDishCount,
+          side_dish_count: sideDishCount
+        })
+        .eq('user_id', userId)
+        .select()
+
+      console.log('Update result:', updateResult)
+      console.log('Update error:', updateError)
+
+      let finalData = updateResult
+
+      // ถ้าไม่มีข้อมูลเดิม ให้ insert ใหม่
+      if (!updateResult || updateResult.length === 0) {
+        console.log('No existing record, inserting new one')
+        const { data: insertResult, error: insertError } = await supabase
+          .from('scoreboard')
+          .insert({
+            user_id: userId,
+            user_name: userName,
+            user_image: userImage,
+            current_score: score,
+            achieved_at: new Date().toISOString(),
+            main_dish_count: mainDishCount,
+            side_dish_count: sideDishCount
+          })
+          .select()
+
+        console.log('Insert result:', insertResult)
+        console.log('Insert error:', insertError)
+
+        if (insertError) throw insertError
+        finalData = insertResult
       }
 
-      console.log('Update data:', updateData)
+      if (updateError && !finalData) throw updateError
 
-      const { data, error } = await supabase
-        .from('scoreboard')
-        .upsert(updateData)
-        .select()
-        .single()
-
-      if (error) throw error
-
-      console.log('Supabase update result:', data)
+      console.log('Final data:', finalData)
 
       return {
         success: true,
@@ -132,7 +155,7 @@ export const updateScore = async (userData) => {
         data: {
           highestScore: score, // คะแนนล่าสุด (สำหรับ API response)
           currentScore: score, // คะแนนล่าสุด
-          updatedData: data
+          updatedData: finalData
         }
       }
     } catch (error) {
