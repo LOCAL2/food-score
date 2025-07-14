@@ -20,8 +20,12 @@ const SCORE_LEVELS = [
 
 export default function Home() {
   const { data: session } = useSession();
-  const [mainDishes, setMainDishes] = useState([{ name: '', amount: 1 }]);
-  const [sideDishes, setSideDishes] = useState([{ name: '', amount: 1 }]);
+  const [meals, setMeals] = useState({
+    breakfast: [{ name: '', amount: 1 }],
+    lunch: [{ name: '', amount: 1 }],
+    dinner: [{ name: '', amount: 1 }]
+  });
+  const [selectedMeals, setSelectedMeals] = useState(['breakfast']); // เลือกมื้อที่จะคำนวณ
   const [history, setHistory] = useState([]);
   const [isSharedData, setIsSharedData] = useState(false);
   const [notification, setNotification] = useState(null);
@@ -32,48 +36,60 @@ export default function Home() {
   const [isRankLoading, setIsRankLoading] = useState(false);
   const [lastRankUpdate, setLastRankUpdate] = useState(null);
 
-  const addMainDish = () => {
-    setMainDishes([...mainDishes, { name: '', amount: 1 }]);
+  const addMealItem = (mealType) => {
+    setMeals(prev => ({
+      ...prev,
+      [mealType]: [...prev[mealType], { name: '', amount: 1 }]
+    }));
   };
 
-  const addSideDish = () => {
-    setSideDishes([...sideDishes, { name: '', amount: 1 }]);
+  const updateMealItem = (mealType, index, field, value) => {
+    setMeals(prev => {
+      const updated = [...prev[mealType]];
+      updated[index][field] = value;
+      return {
+        ...prev,
+        [mealType]: updated
+      };
+    });
   };
 
-  const updateMainDish = (index, field, value) => {
-    const updated = [...mainDishes];
-    updated[index][field] = value;
-    setMainDishes(updated);
+  const removeMealItem = (mealType, index) => {
+    setMeals(prev => {
+      if (prev[mealType].length > 1) {
+        return {
+          ...prev,
+          [mealType]: prev[mealType].filter((_, i) => i !== index)
+        };
+      }
+      return prev;
+    });
   };
 
-  const updateSideDish = (index, field, value) => {
-    const updated = [...sideDishes];
-    updated[index][field] = value;
-    setSideDishes(updated);
-  };
-
-  const removeMainDish = (index) => {
-    if (mainDishes.length > 1) {
-      setMainDishes(mainDishes.filter((_, i) => i !== index));
-    }
-  };
-
-  const removeSideDish = (index) => {
-    if (sideDishes.length > 1) {
-      setSideDishes(sideDishes.filter((_, i) => i !== index));
-    }
+  const toggleMealSelection = (mealType) => {
+    setSelectedMeals(prev => {
+      if (prev.includes(mealType)) {
+        // ถ้ามีอยู่แล้วให้ลบออก (แต่ต้องมีอย่างน้อย 1 มื้อ)
+        return prev.length > 1 ? prev.filter(m => m !== mealType) : prev;
+      } else {
+        // ถ้าไม่มีให้เพิ่มเข้าไป
+        return [...prev, mealType];
+      }
+    });
   };
 
   const calculateScore = () => {
-    const mainScore = mainDishes.reduce((total, dish) => {
-      return total + (dish.name.trim() ? dish.amount * 2 : 0);
-    }, 0);
+    let totalScore = 0;
 
-    const sideScore = sideDishes.reduce((total, dish) => {
-      return total + (dish.name.trim() ? dish.amount * 1 : 0);
-    }, 0);
+    selectedMeals.forEach(mealType => {
+      const mealItems = meals[mealType] || [];
+      const mealScore = mealItems.reduce((total, item) => {
+        return total + (item.name.trim() ? item.amount * 2 : 0); // ทุกเมนูอาหารได้ 2 คะแนนต่อจำนวน
+      }, 0);
+      totalScore += mealScore;
+    });
 
-    return mainScore + sideScore;
+    return totalScore;
   };
 
   const getScoreLevel = (score) => {
@@ -174,14 +190,18 @@ export default function Home() {
   // ฟังก์ชันบันทึกคะแนนไปยัง scoreboard
   const saveToScoreboard = async (score) => {
     try {
-      // ตรวจสอบและกรองข้อมูลให้ปลอดภัย
-      const validMainDishes = Array.isArray(mainDishes)
-        ? mainDishes.filter(d => d && typeof d === 'object' && d.name && d.name.trim())
-        : [];
-
-      const validSideDishes = Array.isArray(sideDishes)
-        ? sideDishes.filter(d => d && typeof d === 'object' && d.name && d.name.trim())
-        : [];
+      // รวบรวมข้อมูลอาหารจากมื้อที่เลือก
+      const allMealItems = [];
+      selectedMeals.forEach(mealType => {
+        const mealItems = meals[mealType] || [];
+        const validItems = mealItems.filter(item => item && typeof item === 'object' && item.name && item.name.trim());
+        validItems.forEach(item => {
+          allMealItems.push({
+            ...item,
+            mealType: mealType
+          });
+        });
+      });
 
       const response = await fetch('/api/scoreboard', {
         method: 'POST',
@@ -190,8 +210,8 @@ export default function Home() {
         },
         body: JSON.stringify({
           score,
-          mainDishes: validMainDishes,
-          sideDishes: validSideDishes
+          meals: allMealItems,
+          selectedMeals: selectedMeals
         })
       });
 
@@ -281,14 +301,33 @@ export default function Home() {
     ctx.fillText(currentLevel.description || '', canvas.width / 2, 370);
 
     // รายละเอียด
-    const mainDishCount = mainDishes.filter(d => d.name.trim()).length;
-    const sideDishCount = sideDishes.filter(d => d.name.trim()).length;
-    const mainScore = mainDishes.reduce((total, dish) => total + (dish.name.trim() ? dish.amount * 2 : 0), 0);
-    const sideScore = sideDishes.reduce((total, dish) => total + (dish.name.trim() ? dish.amount * 1 : 0), 0);
+    let totalItems = 0;
+    let mealDetails = [];
+
+    selectedMeals.forEach(mealType => {
+      const mealItems = meals[mealType] || [];
+      const validItems = mealItems.filter(item => item.name.trim());
+      const mealScore = validItems.reduce((total, item) => total + item.amount * 2, 0);
+      totalItems += validItems.length;
+
+      const mealNames = {
+        breakfast: '🍳 มื้อเช้า',
+        lunch: '🍽️ มื้อกลางวัน',
+        dinner: '🌙 มื้อเย็น'
+      };
+
+      if (validItems.length > 0) {
+        mealDetails.push(`${mealNames[mealType]} ${validItems.length} รายการ (${formatNumber(mealScore)} คะแนน)`);
+      }
+    });
 
     ctx.font = 'bold 20px Arial';
-    ctx.fillText(`🍛 อาหารหลัก ${mainDishCount} รายการ (${formatNumber(mainScore)} คะแนน)`, canvas.width / 2, 430);
-    ctx.fillText(`🥗 เครื่องเคียง ${sideDishCount} รายการ (${formatNumber(sideScore)} คะแนน)`, canvas.width / 2, 460);
+    ctx.fillText(`�️ รวม ${totalItems} รายการอาหาร`, canvas.width / 2, 430);
+
+    // แสดงรายละเอียดมื้ออาหาร
+    mealDetails.forEach((detail, index) => {
+      ctx.fillText(detail, canvas.width / 2, 460 + (index * 25));
+    });
 
     // วันที่
     ctx.font = '16px Arial';
@@ -320,11 +359,20 @@ export default function Home() {
 
     // สร้างข้อมูลที่จะเข้ารหัส (ย่อให้สั้นที่สุด)
     const shareData = {
-      v: 1, // version
+      v: 2, // version 2 สำหรับโครงสร้างใหม่
       s: totalScore, // score เท่านั้น - คำนวณ level ใหม่ตอนโหลด
-      m: mainDishes.filter(d => d.name.trim()).map(d => [d.name, d.amount]), // [name, amount]
-      d: sideDishes.filter(d => d.name.trim()).map(d => [d.name, d.amount])  // [name, amount]
+      meals: {}, // เก็บข้อมูลอาหารแยกตามมื้อ
+      selectedMeals: selectedMeals // เก็บมื้อที่เลือก
     };
+
+    // เก็บข้อมูลอาหารแยกตามมื้อ
+    selectedMeals.forEach(mealType => {
+      const mealItems = meals[mealType] || [];
+      const validItems = mealItems.filter(item => item.name.trim());
+      if (validItems.length > 0) {
+        shareData.meals[mealType] = validItems.map(item => [item.name, item.amount]);
+      }
+    });
 
     try {
       // เข้ารหัสข้อมูลด้วย Base64 (รองรับ Unicode)
@@ -354,12 +402,33 @@ export default function Home() {
 
   const copyLinkFromHistory = (record) => {
     // สร้างข้อมูลที่จะเข้ารหัส (ย่อให้สั้นที่สุด)
-    const shareData = {
-      v: 1, // version
-      s: record.totalScore, // score เท่านั้น
-      m: record.mainDishes.map(d => [d.name, d.amount]), // [name, amount]
-      d: record.sideDishes.map(d => [d.name, d.amount])  // [name, amount]
-    };
+    let shareData;
+
+    if (record.meals && record.selectedMeals) {
+      // โครงสร้างใหม่
+      shareData = {
+        v: 2, // version 2
+        s: record.totalScore,
+        meals: {},
+        selectedMeals: record.selectedMeals
+      };
+
+      // แปลงข้อมูลอาหารตามมื้อ
+      record.selectedMeals.forEach(mealType => {
+        const mealItems = record.meals.filter(item => item.mealType === mealType);
+        if (mealItems.length > 0) {
+          shareData.meals[mealType] = mealItems.map(item => [item.name, item.amount]);
+        }
+      });
+    } else {
+      // โครงสร้างเก่า (backward compatibility)
+      shareData = {
+        v: 1, // version
+        s: record.totalScore, // score เท่านั้น
+        m: (record.mainDishes || []).map(d => [d.name, d.amount]), // [name, amount]
+        d: (record.sideDishes || []).map(d => [d.name, d.amount])  // [name, amount]
+      };
+    }
 
     try {
       // เข้ารหัสข้อมูลด้วย Base64 (รองรับ Unicode)
@@ -427,8 +496,29 @@ export default function Home() {
     ctx.fillText(record.description || '', canvas.width / 2, 370);
 
     ctx.font = 'bold 20px Arial';
-    ctx.fillText(`🍛 อาหารหลัก ${record.breakdown?.mainDishCount || 0} รายการ (${formatNumber(record.breakdown?.mainScore || 0)} คะแนน)`, canvas.width / 2, 430);
-    ctx.fillText(`🥗 เครื่องเคียง ${record.breakdown?.sideDishCount || 0} รายการ (${formatNumber(record.breakdown?.sideScore || 0)} คะแนน)`, canvas.width / 2, 460);
+
+    if (record.breakdown && record.breakdown.mealBreakdown) {
+      // โครงสร้างใหม่
+      ctx.fillText(`🍽️ รวม ${record.breakdown.totalItems || 0} รายการอาหาร`, canvas.width / 2, 430);
+
+      let yPos = 460;
+      Object.entries(record.breakdown.mealBreakdown).forEach(([mealType, data]) => {
+        const mealNames = {
+          breakfast: '🍳 มื้อเช้า',
+          lunch: '🍽️ มื้อกลางวัน',
+          dinner: '🌙 มื้อเย็น'
+        };
+
+        if (data.count > 0) {
+          ctx.fillText(`${mealNames[mealType]} ${data.count} รายการ (${formatNumber(data.score)} คะแนน)`, canvas.width / 2, yPos);
+          yPos += 25;
+        }
+      });
+    } else {
+      // โครงสร้างเก่า (backward compatibility)
+      ctx.fillText(`🍛 อาหารหลัก ${record.breakdown?.mainDishCount || 0} รายการ (${formatNumber(record.breakdown?.mainScore || 0)} คะแนน)`, canvas.width / 2, 430);
+      ctx.fillText(`🥗 เครื่องเคียง ${record.breakdown?.sideDishCount || 0} รายการ (${formatNumber(record.breakdown?.sideScore || 0)} คะแนน)`, canvas.width / 2, 460);
+    }
 
     ctx.font = '16px Arial';
     ctx.fillStyle = '#cccccc';
@@ -456,14 +546,30 @@ export default function Home() {
     setIsSaving(true);
 
     try {
-      // ตรวจสอบและกรองข้อมูลให้ปลอดภัย
-      const validMainDishes = Array.isArray(mainDishes)
-        ? mainDishes.filter(d => d && typeof d === 'object' && d.name && d.name.trim())
-        : [];
+      // รวบรวมข้อมูลอาหารจากมื้อที่เลือก
+      const allMealItems = [];
+      let totalItems = 0;
+      let mealBreakdown = {};
 
-      const validSideDishes = Array.isArray(sideDishes)
-        ? sideDishes.filter(d => d && typeof d === 'object' && d.name && d.name.trim())
-        : [];
+      selectedMeals.forEach(mealType => {
+        const mealItems = meals[mealType] || [];
+        const validItems = mealItems.filter(item => item && typeof item === 'object' && item.name && item.name.trim());
+        const mealScore = validItems.reduce((total, item) => total + (item.amount || 0) * 2, 0);
+
+        totalItems += validItems.length;
+        mealBreakdown[mealType] = {
+          count: validItems.length,
+          score: mealScore,
+          items: validItems
+        };
+
+        validItems.forEach(item => {
+          allMealItems.push({
+            ...item,
+            mealType: mealType
+          });
+        });
+      });
 
       const newRecord = {
         id: Date.now(),
@@ -472,13 +578,11 @@ export default function Home() {
         emoji: currentLevel.emoji,
         totalScore: totalScore,
         description: currentLevel.description,
-        mainDishes: validMainDishes,
-        sideDishes: validSideDishes,
+        meals: allMealItems,
+        selectedMeals: selectedMeals,
         breakdown: {
-          mainDishCount: validMainDishes.length,
-          sideDishCount: validSideDishes.length,
-          mainScore: validMainDishes.reduce((total, dish) => total + (dish.amount || 0) * 2, 0),
-          sideScore: validSideDishes.reduce((total, dish) => total + (dish.amount || 0) * 1, 0)
+          totalItems: totalItems,
+          mealBreakdown: mealBreakdown
         }
       };
 
@@ -601,37 +705,78 @@ export default function Home() {
         const decodedData = JSON.parse(decodedString);
 
         // ตรวจสอบ version และโครงสร้างข้อมูล
-        if (decodedData.v === 1 && decodedData.m && decodedData.d) {
-          // โหลดข้อมูลอาหารหลัก (รูปแบบใหม่: [name, amount])
-          if (decodedData.m.length > 0) {
-            setMainDishes(decodedData.m.map(d => ({ name: d[0], amount: d[1] })));
-          }
+        if (decodedData.v === 2 && decodedData.meals && decodedData.selectedMeals) {
+          // โหลดข้อมูลรูปแบบใหม่ (version 2)
+          const newMeals = {
+            breakfast: [{ name: '', amount: 1 }],
+            lunch: [{ name: '', amount: 1 }],
+            dinner: [{ name: '', amount: 1 }]
+          };
 
-          // โหลดข้อมูลเครื่องเคียง (รูปแบบใหม่: [name, amount])
-          if (decodedData.d.length > 0) {
-            setSideDishes(decodedData.d.map(d => ({ name: d[0], amount: d[1] })));
-          }
+          // โหลดข้อมูลอาหารแยกตามมื้อ
+          Object.keys(decodedData.meals).forEach(mealType => {
+            if (decodedData.meals[mealType] && decodedData.meals[mealType].length > 0) {
+              newMeals[mealType] = decodedData.meals[mealType].map(item => ({
+                name: item[0],
+                amount: item[1]
+              }));
+            }
+          });
 
+          setMeals(newMeals);
+          setSelectedMeals(decodedData.selectedMeals);
           setIsSharedData(true);
 
-          // แสดง notification ว่าโหลดข้อมูลที่แชร์แล้ว
           setTimeout(() => {
             showNotification(`โหลดข้อมูลที่แชร์แล้ว!`, 'info');
           }, 1000);
-        } else if (decodedData.v === 1 && decodedData.md && decodedData.sd) {
-          // รองรับรูปแบบเก่า (backward compatibility)
-          if (decodedData.md.length > 0) {
-            setMainDishes(decodedData.md.map(d => ({ name: d.n, amount: d.a })));
+        } else if (decodedData.v === 1 && decodedData.m && decodedData.d) {
+          // รองรับรูปแบบเก่า version 1 - แปลงเป็นรูปแบบใหม่
+          const newMeals = {
+            breakfast: [{ name: '', amount: 1 }],
+            lunch: [{ name: '', amount: 1 }],
+            dinner: [{ name: '', amount: 1 }]
+          };
+
+          // แปลงอาหารหลักเป็นมื้อเช้า
+          if (decodedData.m.length > 0) {
+            newMeals.breakfast = decodedData.m.map(d => ({ name: d[0], amount: d[1] }));
           }
 
-          if (decodedData.sd.length > 0) {
-            setSideDishes(decodedData.sd.map(d => ({ name: d.n, amount: d.a })));
+          // แปลงเครื่องเคียงเป็นมื้อกลางวัน
+          if (decodedData.d.length > 0) {
+            newMeals.lunch = decodedData.d.map(d => ({ name: d[0], amount: d[1] }));
           }
 
+          setMeals(newMeals);
+          setSelectedMeals(['breakfast', 'lunch']);
           setIsSharedData(true);
 
           setTimeout(() => {
-            showNotification(`โหลดข้อมูลที่แชร์แล้ว!`, 'info');
+            showNotification(`โหลดข้อมูลที่แชร์แล้ว! (แปลงจากรูปแบบเก่า)`, 'info');
+          }, 1000);
+        } else if (decodedData.v === 1 && decodedData.md && decodedData.sd) {
+          // รองรับรูปแบบเก่า (backward compatibility)
+          const newMeals = {
+            breakfast: [{ name: '', amount: 1 }],
+            lunch: [{ name: '', amount: 1 }],
+            dinner: [{ name: '', amount: 1 }]
+          };
+
+          if (decodedData.md.length > 0) {
+            newMeals.breakfast = decodedData.md.map(d => ({ name: d.n, amount: d.a }));
+          }
+
+          if (decodedData.sd.length > 0) {
+            newMeals.lunch = decodedData.sd.map(d => ({ name: d.n, amount: d.a }));
+          }
+
+          setMeals(newMeals);
+          setSelectedMeals(['breakfast', 'lunch']);
+          setIsSharedData(true);
+
+          setTimeout(() => {
+            showNotification(`โหลดข้อมูลที่แชร์แล้ว! (แปลงจากรูปแบบเก่า)`, 'info');
           }, 1000);
         }
       } catch (error) {
@@ -643,12 +788,18 @@ export default function Home() {
       const sharedMainDishes = urlParams.get('mainDishes');
       const sharedSideDishes = urlParams.get('sideDishes');
 
+      const newMeals = {
+        breakfast: [{ name: '', amount: 1 }],
+        lunch: [{ name: '', amount: 1 }],
+        dinner: [{ name: '', amount: 1 }]
+      };
+
       if (sharedMainDishes && sharedMainDishes !== '') {
         const parsedMainDishes = sharedMainDishes.split(',').map(dish => {
           const match = dish.match(/^(.+)\((\d+)\)$/);
           return match ? { name: match[1], amount: parseInt(match[2]) } : { name: dish, amount: 1 };
         });
-        setMainDishes(parsedMainDishes);
+        newMeals.breakfast = parsedMainDishes;
       }
 
       if (sharedSideDishes && sharedSideDishes !== '') {
@@ -656,13 +807,15 @@ export default function Home() {
           const match = dish.match(/^(.+)\((\d+)\)$/);
           return match ? { name: match[1], amount: parseInt(match[2]) } : { name: dish, amount: 1 };
         });
-        setSideDishes(parsedSideDishes);
+        newMeals.lunch = parsedSideDishes;
       }
 
+      setMeals(newMeals);
+      setSelectedMeals(['breakfast', 'lunch']);
       setIsSharedData(true);
 
       setTimeout(() => {
-        showNotification(`โหลดข้อมูลที่แชร์แล้ว!`, 'info');
+        showNotification(`โหลดข้อมูลที่แชร์แล้ว! (แปลงจากรูปแบบเก่า)`, 'info');
       }, 1000);
     }
   }, []);
@@ -779,8 +932,12 @@ export default function Home() {
                 className="btn btn-sm btn-ghost"
                 onClick={() => {
                   setIsSharedData(false);
-                  setMainDishes([{ name: '', amount: 1 }]);
-                  setSideDishes([{ name: '', amount: 1 }]);
+                  setMeals({
+                    breakfast: [{ name: '', amount: 1 }],
+                    lunch: [{ name: '', amount: 1 }],
+                    dinner: [{ name: '', amount: 1 }]
+                  });
+                  setSelectedMeals(['breakfast']);
                   window.history.replaceState({}, '', window.location.pathname);
                 }}
               >
@@ -790,124 +947,114 @@ export default function Home() {
           )}
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* อาหารหลัก */}
-          <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 border border-primary/20">
-            <div className="card-body">
-              <h2 className="card-title text-2xl text-primary mb-4 flex items-center">
-                🍛 อาหารหลัก
-              </h2>
+        {/* เลือกมื้ออาหาร */}
+        <div className="card bg-base-100 shadow-xl mb-8 border border-accent/20">
+          <div className="card-body">
+            <h2 className="card-title text-2xl text-accent mb-4 flex items-center justify-center">
+              🍽️ เลือกมื้ออาหารที่ต้องการคำนวณ
+            </h2>
 
-            {mainDishes.map((dish, index) => (
-              <div key={index} className="flex gap-2 mb-3">
-                <input
-                  type="text"
-                  placeholder="ชื่ออาหาร"
-                  value={dish.name}
-                  onChange={(e) => updateMainDish(index, 'name', e.target.value)}
+            <div className="flex flex-wrap gap-4 justify-center">
+              {[
+                { key: 'breakfast', name: 'มื้อเช้า', emoji: '🌞', color: 'btn-warning' },
+                { key: 'lunch', name: 'กลางวัน', color: 'btn-info' },
+                { key: 'dinner', name: 'เย็น', color: 'btn-secondary' }
+              ].map(meal => (
+                <button
+                  key={meal.key}
+                  onClick={() => toggleMealSelection(meal.key)}
                   disabled={isSharedData}
-                  className={`input input-bordered input-primary flex-1 shadow-sm focus:shadow-md transition-all duration-200 ${
-                    isSharedData ? 'input-disabled bg-base-200' : ''
-                  }`}
-                />
-                <input
-                  type="number"
-                  min="1"
-                  value={dish.amount}
-                  onChange={(e) => updateMainDish(index, 'amount', parseInt(e.target.value) || 1)}
-                  disabled={isSharedData}
-                  className={`input input-bordered input-primary w-20 shadow-sm focus:shadow-md transition-all duration-200 ${
-                    isSharedData ? 'input-disabled bg-base-200' : ''
-                  }`}
-                />
-                {mainDishes.length > 1 && !isSharedData && (
-                  <button
-                    onClick={() => removeMainDish(index)}
-                    className="btn btn-error btn-sm px-3 shadow-md hover:shadow-lg transform hover:scale-110 transition-all duration-200"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  className={`btn btn-lg gap-2 shadow-lg transition-all duration-200 ${
+                    selectedMeals.includes(meal.key)
+                      ? `${meal.color} hover:shadow-xl transform hover:scale-105`
+                      : 'btn-outline hover:shadow-md'
+                  } ${isSharedData ? 'btn-disabled opacity-50' : ''}`}
+                >
+                  {meal.name}
+                  {selectedMeals.includes(meal.key) && (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                  </button>
-                )}
-              </div>
-            ))}
-
-            <button
-              onClick={addMainDish}
-              disabled={isSharedData}
-              className={`btn btn-primary w-full mt-3 gap-2 shadow-lg transition-all duration-200 bg-gradient-to-r from-blue-500 to-blue-600 border-none ${
-                isSharedData
-                  ? 'btn-disabled opacity-50 cursor-not-allowed'
-                  : 'hover:shadow-xl transform hover:scale-105'
-              }`}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              เพิ่มอาหารหลัก
-            </button>
+                  )}
+                </button>
+              ))}
             </div>
           </div>
+        </div>
 
-          {/* เครื่องเคียง */}
-          <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 border border-success/20">
-            <div className="card-body">
-              <h2 className="card-title text-2xl text-success mb-4 flex items-center">
-                🥗 เครื่องเคียง
-              </h2>
+        {/* ฟอร์มกรอกอาหารสำหรับแต่ละมื้อ */}
+        <div className="grid gap-8">
+          {selectedMeals.map(mealType => {
+            const mealConfig = {
+              breakfast: { name: 'มื้อเช้า', emoji: '🌞', color: 'warning' },
+              lunch: { name: 'มื้อกลางวัน', emoji: '🍽️', color: 'info' },
+              dinner: { name: 'มื้อเย็น', emoji: '🌙', color: 'secondary' }
+            };
 
-            {sideDishes.map((dish, index) => (
-              <div key={index} className="flex gap-2 mb-3">
-                <input
-                  type="text"
-                  placeholder="ชื่อเครื่องเคียง"
-                  value={dish.name}
-                  onChange={(e) => updateSideDish(index, 'name', e.target.value)}
-                  disabled={isSharedData}
-                  className={`input input-bordered input-success flex-1 shadow-sm focus:shadow-md transition-all duration-200 ${
-                    isSharedData ? 'input-disabled bg-base-200' : ''
-                  }`}
-                />
-                <input
-                  type="number"
-                  min="1"
-                  value={dish.amount}
-                  onChange={(e) => updateSideDish(index, 'amount', parseInt(e.target.value) || 1)}
-                  disabled={isSharedData}
-                  className={`input input-bordered input-success w-20 shadow-sm focus:shadow-md transition-all duration-200 ${
-                    isSharedData ? 'input-disabled bg-base-200' : ''
-                  }`}
-                />
-                {sideDishes.length > 1 && !isSharedData && (
+            const config = mealConfig[mealType];
+            const mealItems = meals[mealType] || [];
+
+            return (
+              <div key={mealType} className={`card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 border border-${config.color}/20`}>
+                <div className="card-body">
+                  <h2 className={`card-title text-2xl text-${config.color} mb-4 flex items-center`}>
+                    <span className="text-3xl mr-2">{config.emoji}</span>
+                    {config.name}
+                  </h2>
+
+                  {mealItems.map((item, index) => (
+                    <div key={index} className="flex gap-2 mb-3">
+                      <input
+                        type="text"
+                        placeholder="ชื่อเมนูอาหาร"
+                        value={item.name}
+                        onChange={(e) => updateMealItem(mealType, index, 'name', e.target.value)}
+                        disabled={isSharedData}
+                        className={`input input-bordered input-${config.color} flex-1 shadow-sm focus:shadow-md transition-all duration-200 ${
+                          isSharedData ? 'input-disabled bg-base-200' : ''
+                        }`}
+                      />
+                      <input
+                        type="number"
+                        min="1"
+                        value={item.amount}
+                        onChange={(e) => updateMealItem(mealType, index, 'amount', parseInt(e.target.value) || 1)}
+                        disabled={isSharedData}
+                        className={`input input-bordered input-${config.color} w-20 shadow-sm focus:shadow-md transition-all duration-200 ${
+                          isSharedData ? 'input-disabled bg-base-200' : ''
+                        }`}
+                      />
+                      {mealItems.length > 1 && !isSharedData && (
+                        <button
+                          onClick={() => removeMealItem(mealType, index)}
+                          className="btn btn-error btn-sm px-3 shadow-md hover:shadow-lg transform hover:scale-110 transition-all duration-200"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+
                   <button
-                    onClick={() => removeSideDish(index)}
-                    className="btn btn-error btn-sm px-3 shadow-md hover:shadow-lg transform hover:scale-110 transition-all duration-200"
+                    onClick={() => addMealItem(mealType)}
+                    disabled={isSharedData}
+                    className={`btn btn-${config.color} w-full mt-3 gap-2 shadow-lg transition-all duration-200 border-none ${
+                      isSharedData
+                        ? 'btn-disabled opacity-50 cursor-not-allowed'
+                        : 'hover:shadow-xl transform hover:scale-105'
+                    }`}
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
+                    เพิ่มเมนูอาหาร{config.name}
                   </button>
-                )}
+                </div>
               </div>
-            ))}
-
-            <button
-              onClick={addSideDish}
-              disabled={isSharedData}
-              className={`btn btn-success w-full mt-3 gap-2 shadow-lg transition-all duration-200 bg-gradient-to-r from-green-500 to-green-600 border-none ${
-                isSharedData
-                  ? 'btn-disabled opacity-50 cursor-not-allowed'
-                  : 'hover:shadow-xl transform hover:scale-105'
-              }`}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              เพิ่มเครื่องเคียง
-            </button>
-            </div>
-          </div>
+            );
+          })}
         </div>
 
         {/* ผลลัพธ์ */}
@@ -1038,14 +1185,29 @@ export default function Home() {
               รายละเอียดการคำนวณ
             </h3>
             <div className="space-y-3">
-              <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
-                <span className="text-primary font-medium">🍛 อาหารหลัก</span>
-                <span className="badge badge-primary badge-lg">{mainDishes.filter(d => d.name.trim()).length} รายการ × 2 = {mainDishes.reduce((total, dish) => total + (dish.name.trim() ? dish.amount * 2 : 0), 0)} คะแนน</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-success/10 rounded-lg">
-                <span className="text-success font-medium">🥗 เครื่องเคียง</span>
-                <span className="badge badge-success badge-lg">{sideDishes.filter(d => d.name.trim()).length} รายการ × 1 = {sideDishes.reduce((total, dish) => total + (dish.name.trim() ? dish.amount * 1 : 0), 0)} คะแนน</span>
-              </div>
+              {selectedMeals.map(mealType => {
+                const mealConfig = {
+                  breakfast: { name: 'มื้อเช้า', emoji: '�', color: 'warning' },
+                  lunch: { name: 'มื้อกลางวัน', emoji: '🍽️', color: 'info' },
+                  dinner: { name: 'มื้อเย็น', emoji: '🌙', color: 'secondary' }
+                };
+
+                const config = mealConfig[mealType];
+                const mealItems = meals[mealType] || [];
+                const validItems = mealItems.filter(item => item.name.trim());
+                const mealScore = validItems.reduce((total, item) => total + item.amount * 2, 0);
+
+                return (
+                  <div key={mealType} className={`flex justify-between items-center p-3 bg-${config.color}/10 rounded-lg`}>
+                    <span className={`text-${config.color} font-medium`}>
+                      {config.emoji} {config.name}
+                    </span>
+                    <span className={`badge badge-${config.color} badge-lg`}>
+                      {validItems.length} รายการ × 2 = {formatNumber(mealScore)} คะแนน
+                    </span>
+                  </div>
+                );
+              })}
               <div className="divider my-2"></div>
               <div className="flex justify-between items-center p-4 bg-accent/20 rounded-lg border-2 border-accent/30">
                 <span className="text-accent font-bold text-lg">🎯 คะแนนรวม</span>
@@ -1093,16 +1255,36 @@ export default function Home() {
                       {record.description}
                     </div>
 
-                    <div className="flex gap-4 text-xs mb-3">
-                      <span className="badge badge-primary badge-sm">
-                        🍛 {record.breakdown.mainDishCount} รายการ ({formatNumber(record.breakdown.mainScore)} คะแนน)
-                      </span>
-                      <span className="badge badge-success badge-sm">
-                        🥗 {record.breakdown.sideDishCount} รายการ ({formatNumber(record.breakdown.sideScore)} คะแนน)
-                      </span>
+                    <div className="flex gap-2 text-xs mb-3 flex-wrap">
+                      {record.breakdown && record.breakdown.mealBreakdown ? (
+                        // โครงสร้างใหม่
+                        Object.entries(record.breakdown.mealBreakdown).map(([mealType, data]) => {
+                          const mealConfig = {
+                            breakfast: { name: 'เช้า', emoji: '�', color: 'warning' },
+                            lunch: { name: 'กลางวัน', emoji: '🍽️', color: 'info' },
+                            dinner: { name: 'เย็น', emoji: '🌙', color: 'secondary' }
+                          };
+                          const config = mealConfig[mealType];
+
+                          return data.count > 0 ? (
+                            <span key={mealType} className={`badge badge-${config.color} badge-sm`}>
+                              {config.emoji} {config.name} {data.count} รายการ ({formatNumber(data.score)} คะแนน)
+                            </span>
+                          ) : null;
+                        })
+                      ) : (
+                        // โครงสร้างเก่า (backward compatibility)
+                        <>
+                          <span className="badge badge-primary badge-sm">
+                            🍛 {record.breakdown?.mainDishCount || 0} รายการ ({formatNumber(record.breakdown?.mainScore || 0)} คะแนน)
+                          </span>
+                          <span className="badge badge-success badge-sm">
+                            🥗 {record.breakdown?.sideDishCount || 0} รายการ ({formatNumber(record.breakdown?.sideScore || 0)} คะแนน)
+                          </span>
+                        </>
+                      )}
                     </div>
 
-                    {/* ปุ่มแชร์จากประวัติ */}
                     <div className="flex gap-2 flex-wrap">
                       <button
                         onClick={() => copyLinkFromHistory(record)}
@@ -1131,7 +1313,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Modal ยืนยันการลบประวัติ */}
         {showClearConfirm && (
           <div className="modal modal-open">
             <div className="modal-box">

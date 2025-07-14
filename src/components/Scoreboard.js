@@ -247,7 +247,6 @@ export default function Scoreboard() {
                         </div>
                       </div>
 
-                      {/* Score */}
                       <div className="text-right">
                         <div className="text-2xl font-bold text-primary">
                           {formatNumber(entry.highestScore)}
@@ -255,8 +254,40 @@ export default function Scoreboard() {
                         <div className="text-sm text-base-content/70">
                           คะแนน
                         </div>
-                        <div className="text-xs text-base-content/50">
-                          🍛 {entry.mainDishCount} | 🥗 {entry.sideDishCount}
+                        <div className="text-xs text-base-content/50 flex gap-2 flex-wrap">
+                          {entry.mealBreakdown ? (
+                            // โครงสร้างใหม่ - แสดงตามมื้อ
+                            Object.entries(entry.mealBreakdown).map(([mealType, data]) => {
+                              const mealConfig = {
+                                breakfast: { name: 'เช้า' },
+                                lunch: { name: 'กลางวัน' },
+                                dinner: { name: 'เย็น' }
+                              }
+                              const config = mealConfig[mealType] || { name: mealType }
+
+                              return data.count > 0 ? (
+                                <span key={mealType} className="badge badge-xs badge-outline">
+                                  {config.name} {data.count}
+                                </span>
+                              ) : null
+                            })
+                          ) : (
+                            // โครงสร้างเก่า - แสดงเฉพาะที่มีค่ามากกว่า 0
+                            <>
+                              {entry.mainDishCount > 0 && (
+                                <span className="badge badge-xs badge-outline">หลัก {entry.mainDishCount}</span>
+                              )}
+                              {entry.sideDishCount > 0 && (
+                                <span className="badge badge-xs badge-outline">เคียง {entry.sideDishCount}</span>
+                              )}
+                              {/* ถ้าทั้งคู่เป็น 0 ให้แสดงข้อความสวยๆ แทน */}
+                              {entry.mainDishCount === 0 && entry.sideDishCount === 0 && (
+                                <span className="badge badge-xs badge-ghost text-base-content/40">
+                                  ยังไม่มีข้อมูลอาหาร
+                                </span>
+                              )}
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>

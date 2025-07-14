@@ -34,15 +34,18 @@ export const getLeaderboard = async (limit = 10) => {
 
       if (error) throw error
 
-      // แปลงข้อมูลให้ตรงกับ format เดิม
+      // แปลงข้อมูลให้ตรงกับ format ใหม่
       const leaderboard = data.map((entry, index) => ({
         userId: entry.user_id,
         userName: entry.user_name,
         userImage: entry.user_image,
         highestScore: entry.current_score, // ใช้ current_score เป็นคะแนนล่าสุด
         achievedAt: entry.achieved_at,
-        mainDishCount: entry.main_dish_count,
-        sideDishCount: entry.side_dish_count,
+        // รองรับทั้งโครงสร้างเก่าและใหม่
+        mainDishCount: entry.main_dish_count || 0,
+        sideDishCount: entry.side_dish_count || 0,
+        mealBreakdown: entry.meal_breakdown || null, // JSONB จะ return เป็น object อยู่แล้ว ไม่ต้อง JSON.parse
+        totalItems: entry.total_items || (entry.main_dish_count || 0) + (entry.side_dish_count || 0),
         rank: index + 1,
         level: getScoreLevel(entry.current_score) // ใช้ current_score สำหรับ level
       }))
@@ -88,6 +91,9 @@ export const updateScore = async (userData) => {
     userName = 'Unknown User',
     userImage = null,
     score = 0,
+    totalItems = 0,
+    mealBreakdown = {},
+    // รองรับ backward compatibility
     mainDishCount = 0,
     sideDishCount = 0
   } = userData
@@ -111,6 +117,9 @@ export const updateScore = async (userData) => {
           user_image: userImage,
           current_score: score,
           achieved_at: new Date().toISOString(),
+          total_items: totalItems,
+          meal_breakdown: Object.keys(mealBreakdown).length > 0 ? mealBreakdown : null, // JSONB รับ object โดยตรง
+          // รองรับ backward compatibility
           main_dish_count: mainDishCount,
           side_dish_count: sideDishCount
         })
@@ -133,6 +142,9 @@ export const updateScore = async (userData) => {
             user_image: userImage,
             current_score: score,
             achieved_at: new Date().toISOString(),
+            total_items: totalItems,
+            meal_breakdown: Object.keys(mealBreakdown).length > 0 ? mealBreakdown : null, // JSONB รับ object โดยตรง
+            // รองรับ backward compatibility
             main_dish_count: mainDishCount,
             side_dish_count: sideDishCount
           })
@@ -172,6 +184,9 @@ export const updateScore = async (userData) => {
     userImage,
     currentScore: score, // บันทึกคะแนนล่าสุดใน currentScore
     achievedAt: new Date().toISOString(), // อัพเดทเวลาทุกครั้ง
+    totalItems,
+    mealBreakdown,
+    // รองรับ backward compatibility
     mainDishCount,
     sideDishCount
   })
