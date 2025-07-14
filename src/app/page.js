@@ -951,7 +951,7 @@ export default function Home() {
         <div className="card bg-base-100 shadow-xl mb-8 border border-accent/20">
           <div className="card-body">
             <h2 className="card-title text-2xl text-accent mb-4 flex items-center justify-center">
-              🍽️ เลือกมื้ออาหารที่ต้องการคำนวณ
+               เลือกมื้ออาหารที่ต้องการคำนวณ
             </h2>
 
             <div className="flex flex-wrap gap-4 justify-center">
