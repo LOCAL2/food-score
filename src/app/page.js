@@ -23,7 +23,8 @@ export default function Home() {
   const [meals, setMeals] = useState({
     breakfast: [{ name: '', amount: 1 }],
     lunch: [{ name: '', amount: 1 }],
-    dinner: [{ name: '', amount: 1 }]
+    dinner: [{ name: '', amount: 1 }],
+    midnight: [{ name: '', amount: 1 }]
   });
   const [selectedMeals, setSelectedMeals] = useState(['breakfast']); // เลือกมื้อที่จะคำนวณ
   const [history, setHistory] = useState([]);
@@ -311,9 +312,10 @@ export default function Home() {
       totalItems += validItems.length;
 
       const mealNames = {
-        breakfast: '🍳 มื้อเช้า',
-        lunch: '🍽️ มื้อกลางวัน',
-        dinner: '🌙 มื้อเย็น'
+        breakfast: 'เช้า',
+        lunch: 'กลางวัน',
+        dinner: 'เย็น',
+        midnight: 'กลางคืน'
       };
 
       if (validItems.length > 0) {
@@ -504,9 +506,10 @@ export default function Home() {
       let yPos = 460;
       Object.entries(record.breakdown.mealBreakdown).forEach(([mealType, data]) => {
         const mealNames = {
-          breakfast: '🍳 มื้อเช้า',
-          lunch: '🍽️ มื้อกลางวัน',
-          dinner: '🌙 มื้อเย็น'
+          breakfast: 'เช้า',
+          lunch: 'กลางวัน',
+          dinner: 'เย็น',
+          midnight: 'กลางคืน'
         };
 
         if (data.count > 0) {
@@ -710,7 +713,8 @@ export default function Home() {
           const newMeals = {
             breakfast: [{ name: '', amount: 1 }],
             lunch: [{ name: '', amount: 1 }],
-            dinner: [{ name: '', amount: 1 }]
+            dinner: [{ name: '', amount: 1 }],
+            midnight: [{ name: '', amount: 1 }]
           };
 
           // โหลดข้อมูลอาหารแยกตามมื้อ
@@ -735,7 +739,8 @@ export default function Home() {
           const newMeals = {
             breakfast: [{ name: '', amount: 1 }],
             lunch: [{ name: '', amount: 1 }],
-            dinner: [{ name: '', amount: 1 }]
+            dinner: [{ name: '', amount: 1 }],
+            midnight: [{ name: '', amount: 1 }]
           };
 
           // แปลงอาหารหลักเป็นมื้อเช้า
@@ -760,7 +765,8 @@ export default function Home() {
           const newMeals = {
             breakfast: [{ name: '', amount: 1 }],
             lunch: [{ name: '', amount: 1 }],
-            dinner: [{ name: '', amount: 1 }]
+            dinner: [{ name: '', amount: 1 }],
+            midnight: [{ name: '', amount: 1 }]
           };
 
           if (decodedData.md.length > 0) {
@@ -791,7 +797,8 @@ export default function Home() {
       const newMeals = {
         breakfast: [{ name: '', amount: 1 }],
         lunch: [{ name: '', amount: 1 }],
-        dinner: [{ name: '', amount: 1 }]
+        dinner: [{ name: '', amount: 1 }],
+        midnight: [{ name: '', amount: 1 }]
       };
 
       if (sharedMainDishes && sharedMainDishes !== '') {
@@ -935,7 +942,8 @@ export default function Home() {
                   setMeals({
                     breakfast: [{ name: '', amount: 1 }],
                     lunch: [{ name: '', amount: 1 }],
-                    dinner: [{ name: '', amount: 1 }]
+                    dinner: [{ name: '', amount: 1 }],
+                    midnight: [{ name: '', amount: 1 }]
                   });
                   setSelectedMeals(['breakfast']);
                   window.history.replaceState({}, '', window.location.pathname);
@@ -956,9 +964,10 @@ export default function Home() {
 
             <div className="flex flex-wrap gap-4 justify-center">
               {[
-                { key: 'breakfast', name: 'มื้อเช้า', emoji: '🌞', color: 'btn-warning' },
+                { key: 'breakfast', name: 'เช้า', color: 'btn-warning' },
                 { key: 'lunch', name: 'กลางวัน', color: 'btn-info' },
-                { key: 'dinner', name: 'เย็น', color: 'btn-secondary' }
+                { key: 'dinner', name: 'เย็น', color: 'btn-secondary' },
+                { key: 'midnight', name: 'กลางคืน', color: 'btn-accent' }
               ].map(meal => (
                 <button
                   key={meal.key}
@@ -986,9 +995,10 @@ export default function Home() {
         <div className="grid gap-8">
           {selectedMeals.map(mealType => {
             const mealConfig = {
-              breakfast: { name: 'มื้อเช้า', emoji: '🌞', color: 'warning' },
-              lunch: { name: 'มื้อกลางวัน', emoji: '🍽️', color: 'info' },
-              dinner: { name: 'มื้อเย็น', emoji: '🌙', color: 'secondary' }
+              breakfast: { name: 'เช้า', color: 'warning' },
+              lunch: { name: 'กลางวัน', color: 'info' },
+              dinner: { name: 'เย็น', color: 'secondary' },
+              midnight: { name: 'กลางคืน', color: 'accent' }
             };
 
             const config = mealConfig[mealType];
@@ -1187,9 +1197,10 @@ export default function Home() {
             <div className="space-y-3">
               {selectedMeals.map(mealType => {
                 const mealConfig = {
-                  breakfast: { name: 'มื้อเช้า', emoji: '�', color: 'warning' },
-                  lunch: { name: 'มื้อกลางวัน', emoji: '🍽️', color: 'info' },
-                  dinner: { name: 'มื้อเย็น', emoji: '🌙', color: 'secondary' }
+                  breakfast: { name: 'เช้า', color: 'warning' },
+                  lunch: { name: 'กลางวัน', color: 'info' },
+                  dinner: { name: 'เย็น', color: 'secondary' },
+                  midnight: { name: 'กลางคืน', color: 'accent' }
                 };
 
                 const config = mealConfig[mealType];
@@ -1260,9 +1271,10 @@ export default function Home() {
                         // โครงสร้างใหม่
                         Object.entries(record.breakdown.mealBreakdown).map(([mealType, data]) => {
                           const mealConfig = {
-                            breakfast: { name: 'เช้า', emoji: '�', color: 'warning' },
-                            lunch: { name: 'กลางวัน', emoji: '🍽️', color: 'info' },
-                            dinner: { name: 'เย็น', emoji: '🌙', color: 'secondary' }
+                            breakfast: { name: 'เช้า', color: 'warning' },
+                            lunch: { name: 'กลางวัน', color: 'info' },
+                            dinner: { name: 'เย็น', color: 'secondary' },
+                            midnight: { name: 'กลางคืน', color: 'accent' }
                           };
                           const config = mealConfig[mealType];
 

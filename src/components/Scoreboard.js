@@ -261,7 +261,8 @@ export default function Scoreboard() {
                               const mealConfig = {
                                 breakfast: { name: 'เช้า' },
                                 lunch: { name: 'กลางวัน' },
-                                dinner: { name: 'เย็น' }
+                                dinner: { name: 'เย็น' },
+                                midnight: { name: 'กลางคืน' }
                               }
                               const config = mealConfig[mealType] || { name: mealType }
 
