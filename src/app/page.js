@@ -318,107 +318,7 @@ export default function Home() {
 
 
 
-  const generateStatsImage = () => {
-    if (totalScore === 0) {
-      showNotification('กรุณากรอกข้อมูลอาหารก่อนสร้างภาพ', 'error');
-      return;
-    }
 
-    // ตรวจสอบว่า currentLevel มีค่า
-    if (!currentLevel || !currentLevel.emoji || !currentLevel.name) {
-      showNotification('เกิดข้อผิดพลาดในการสร้างภาพ', 'error');
-      return;
-    }
-
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-
-    // ตั้งค่าขนาด canvas
-    canvas.width = 800;
-    canvas.height = 600;
-
-    // สร้าง gradient background
-    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(0, '#667eea');
-    gradient.addColorStop(1, '#764ba2');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // เพิ่มขอบ
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 8;
-    ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
-
-    // หัวข้อ
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 48px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('🍽️ Food Score Calculator', canvas.width / 2, 100);
-
-    // Emoji และระดับ
-    ctx.font = 'bold 72px Arial';
-    ctx.fillText(currentLevel.emoji || '🍽️', canvas.width / 2, 200);
-
-    ctx.font = 'bold 36px Arial';
-    ctx.fillText(`ระดับ: ${currentLevel.name || 'ไม่ระบุ'}`, canvas.width / 2, 260);
-
-    // คะแนน
-    ctx.font = 'bold 48px Arial';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(`${formatNumber(totalScore)} คะแนน`, canvas.width / 2, 320);
-
-    // คำอธิบาย
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 24px Arial';
-    ctx.fillText(currentLevel.description || '', canvas.width / 2, 370);
-
-    // รายละเอียด
-    let totalItems = 0;
-    let mealDetails = [];
-
-    selectedMeals.forEach(mealType => {
-      const mealItems = meals[mealType] || [];
-      const validItems = mealItems.filter(item => item.name.trim());
-      const mealScore = validItems.reduce((total, item) => total + item.amount * 2, 0);
-      totalItems += validItems.length;
-
-      const mealNames = {
-        breakfast: 'เช้า',
-        lunch: 'กลางวัน',
-        dinner: 'เย็น',
-        midnight: 'กลางคืน'
-      };
-
-      if (validItems.length > 0) {
-        mealDetails.push(`${mealNames[mealType]} ${validItems.length} รายการ (${formatNumber(mealScore)} คะแนน)`);
-      }
-    });
-
-    ctx.font = 'bold 20px Arial';
-    ctx.fillText(`�️ รวม ${totalItems} รายการอาหาร`, canvas.width / 2, 430);
-
-    // แสดงรายละเอียดมื้ออาหาร
-    mealDetails.forEach((detail, index) => {
-      ctx.fillText(detail, canvas.width / 2, 460 + (index * 25));
-    });
-
-    // วันที่
-    ctx.font = '16px Arial';
-    ctx.fillStyle = '#cccccc';
-    ctx.fillText(`สร้างเมื่อ: ${new Date().toLocaleString('th-TH')}`, canvas.width / 2, 520);
-
-    // ดาวน์โหลดภาพ
-    canvas.toBlob((blob) => {
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `food-score-${new Date().toISOString().split('T')[0]}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    });
-  };
 
 
 
@@ -430,28 +330,30 @@ export default function Home() {
 
 
 
-    // สร้างข้อมูลที่จะเข้ารหัส (ย่อให้สั้นที่สุด)
-    const shareData = {
-      v: 2, // version 2 สำหรับโครงสร้างใหม่
-      s: totalScore, // score เท่านั้น - คำนวณ level ใหม่ตอนโหลด
-      meals: {}, // เก็บข้อมูลอาหารแยกตามมื้อ
-      selectedMeals: selectedMeals // เก็บมื้อที่เลือก
-    };
-
-    // เก็บข้อมูลอาหารแยกตามมื้อ
-    selectedMeals.forEach(mealType => {
-      const mealItems = meals[mealType] || [];
-      const validItems = mealItems.filter(item => item.name.trim());
-      if (validItems.length > 0) {
-        shareData.meals[mealType] = validItems.map(item => [item.name, item.amount]);
-      }
-    });
-
     try {
-      // เข้ารหัสข้อมูลด้วย Base64 (รองรับ Unicode)
-      const jsonString = JSON.stringify(shareData);
-      const encodedData = btoa(encodeURIComponent(jsonString));
-      const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
+      // รวบรวมข้อมูลอาหารปัจจุบัน
+      const currentMeals = {};
+      selectedMeals.forEach(mealType => {
+        const mealItems = meals[mealType] || [];
+        const validItems = mealItems.filter(item => item.name && item.name.trim());
+        if (validItems.length > 0) {
+          currentMeals[mealType] = validItems.map(item => ({
+            name: item.name.trim(),
+            amount: item.amount || 1,
+            score: (item.amount || 1) * 2
+          }));
+        }
+      });
+
+      // เข้ารหัสข้อมูลเป็น Base64
+      const shareData = {
+        userName: session.user.name,
+        totalScore: totalScore,
+        meals: currentMeals
+      };
+
+      const encodedData = btoa(encodeURIComponent(JSON.stringify(shareData)));
+      const shareUrl = `${window.location.origin}/u/${session.user.id}?data=${encodedData}`;
 
       navigator.clipboard.writeText(shareUrl).then(() => {
         showNotification('คัดลอกลิงก์แชร์แล้ว! ส่งให้เพื่อนเพื่อดูผลคะแนนของคุณ');
@@ -473,41 +375,31 @@ export default function Home() {
 
 
 
-  const copyLinkFromHistory = (record) => {
-    // สร้างข้อมูลที่จะเข้ารหัส (ย่อให้สั้นที่สุด)
-    let shareData;
-
-    if (record.meals && record.selectedMeals) {
-      // โครงสร้างใหม่
-      shareData = {
-        v: 2, // version 2
-        s: record.totalScore,
-        meals: {},
-        selectedMeals: record.selectedMeals
-      };
-
-      // แปลงข้อมูลอาหารตามมื้อ
-      record.selectedMeals.forEach(mealType => {
-        const mealItems = record.meals.filter(item => item.mealType === mealType);
-        if (mealItems.length > 0) {
-          shareData.meals[mealType] = mealItems.map(item => [item.name, item.amount]);
+  const copyLinkFromHistory = () => {
+    try {
+      // รวบรวมข้อมูลอาหารปัจจุบัน
+      const currentMeals = {};
+      selectedMeals.forEach(mealType => {
+        const mealItems = meals[mealType] || [];
+        const validItems = mealItems.filter(item => item.name && item.name.trim());
+        if (validItems.length > 0) {
+          currentMeals[mealType] = validItems.map(item => ({
+            name: item.name.trim(),
+            amount: item.amount || 1,
+            score: (item.amount || 1) * 2
+          }));
         }
       });
-    } else {
-      // โครงสร้างเก่า (backward compatibility)
-      shareData = {
-        v: 1, // version
-        s: record.totalScore, // score เท่านั้น
-        m: (record.mainDishes || []).map(d => [d.name, d.amount]), // [name, amount]
-        d: (record.sideDishes || []).map(d => [d.name, d.amount])  // [name, amount]
-      };
-    }
 
-    try {
-      // เข้ารหัสข้อมูลด้วย Base64 (รองรับ Unicode)
-      const jsonString = JSON.stringify(shareData);
-      const encodedData = btoa(encodeURIComponent(jsonString));
-      const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
+      // เข้ารหัสข้อมูลเป็น Base64
+      const shareData = {
+        userName: session.user.name,
+        totalScore: totalScore,
+        meals: currentMeals
+      };
+
+      const encodedData = btoa(encodeURIComponent(JSON.stringify(shareData)));
+      const shareUrl = `${window.location.origin}/u/${session.user.id}?data=${encodedData}`;
 
       navigator.clipboard.writeText(shareUrl).then(() => {
         showNotification('คัดลอกลิงก์แล้ว! ส่งให้เพื่อนเพื่อดูผลคะแนน');
@@ -521,7 +413,7 @@ export default function Home() {
         showNotification('คัดลอกลิงก์แล้ว! ส่งให้เพื่อนเพื่อดูผลคะแนน');
       });
     } catch (error) {
-      console.error('Error creating share link from history:', error);
+      console.error('Error creating share link:', error);
       showNotification('เกิดข้อผิดพลาดในการสร้างลิงก์แชร์', 'error');
     }
   };
@@ -1240,20 +1132,7 @@ export default function Home() {
                 คัดลอกลิงก์แชร์
               </button>
 
-              <button
-                onClick={generateStatsImage}
-                disabled={totalScore === 0}
-                className={`btn btn-info gap-2 shadow-lg transition-all duration-200 ${
-                  totalScore === 0
-                    ? 'btn-disabled opacity-50 cursor-not-allowed'
-                    : 'hover:shadow-xl transform hover:scale-105'
-                }`}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                สร้างภาพ
-              </button>
+
             </div>
           </div>
 
@@ -1373,7 +1252,7 @@ export default function Home() {
 
                     <div className="flex gap-2 flex-wrap">
                       <button
-                        onClick={() => copyLinkFromHistory(record)}
+                        onClick={() => copyLinkFromHistory()}
                         className="btn btn-xs btn-accent gap-1"
                       >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1421,6 +1300,8 @@ export default function Home() {
             </div>
           </div>
         )}
+
+
         </div>
       </div>
       </div>

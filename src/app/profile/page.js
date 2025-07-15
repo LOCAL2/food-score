@@ -68,7 +68,14 @@ export default function Profile() {
 
         {/* Profile Card */}
         <div className="max-w-2xl mx-auto">
-          <div className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl rounded-3xl p-8 border border-slate-600/30 shadow-2xl">
+          <div className="bg-gradient-to-br from-slate-800/95 via-slate-900/90 to-slate-800/95 backdrop-blur-xl rounded-3xl p-8 border border-slate-600/40 shadow-2xl relative overflow-hidden">
+            {/* Animated Background Elements */}
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5 animate-pulse"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-yellow-400/10 to-orange-500/10 rounded-full blur-3xl animate-float"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-green-400/10 to-blue-500/10 rounded-full blur-2xl animate-pulse"></div>
+
+            {/* Content */}
+            <div className="relative z-10">
             {/* Profile Header */}
             <div className="flex flex-col md:flex-row items-center gap-6 mb-8">
               {/* Avatar */}
@@ -203,6 +210,7 @@ export default function Profile() {
                 </svg>
                 ออกจากระบบ
               </button>
+            </div>
             </div>
           </div>
         </div>
