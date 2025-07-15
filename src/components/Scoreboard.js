@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { formatNumber } from '@/utils/formatNumber'
+import UserDetailModal from './UserDetailModal'
 
 export default function Scoreboard() {
   const [leaderboard, setLeaderboard] = useState([])
@@ -11,7 +13,10 @@ export default function Scoreboard() {
   const [error, setError] = useState(null)
   const [lastUpdate, setLastUpdate] = useState(null)
   const [usingFallback, setUsingFallback] = useState(false)
+  const [selectedUser, setSelectedUser] = useState(null)
+  const [showModal, setShowModal] = useState(false)
   const { data: session } = useSession()
+  const router = useRouter()
 
   useEffect(() => {
     fetchLeaderboard()
@@ -59,6 +64,22 @@ export default function Scoreboard() {
       clearInterval(intervalId)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleUserClick = (userEmail) => {
+    if (userEmail) {
+      router.push(`/profile/${encodeURIComponent(userEmail)}`)
+    }
+  }
+
+  const handleShowMeals = (user) => {
+    setSelectedUser(user)
+    setShowModal(true)
+  }
+
+  const handleCloseModal = () => {
+    setShowModal(false)
+    setSelectedUser(null)
+  }
 
   const fetchLeaderboard = async (silent = false) => {
     try {
@@ -225,8 +246,11 @@ export default function Scoreboard() {
                         {getRankIcon(entry.rank)}
                       </div>
 
-                      {/* User Info */}
-                      <div className="flex items-center gap-3 flex-1">
+                      {/* User Info - Clickable */}
+                      <div
+                        className="flex items-center gap-3 flex-1 cursor-pointer hover:bg-base-200/50 rounded-lg p-2 transition-colors"
+                        onClick={() => handleUserClick(entry.userId)}
+                      >
                         <div className="avatar">
                           <div className="w-12 h-12 rounded-full">
                             <img
@@ -237,7 +261,9 @@ export default function Scoreboard() {
                           </div>
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-bold text-lg">{entry.userName}</h3>
+                          <h3 className="font-bold text-lg hover:text-primary transition-colors">
+                            {entry.userName}
+                          </h3>
                           <div className="flex items-center gap-2">
                             <span className="text-2xl">{entry.level.emoji}</span>
                             <span className="font-semibold" style={{ color: entry.level.color }}>
@@ -245,16 +271,21 @@ export default function Scoreboard() {
                             </span>
                           </div>
                         </div>
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="w-5 h-5 text-base-content/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
                       </div>
 
                       <div className="text-right">
                         <div className="text-2xl font-bold text-primary">
-                          {formatNumber(entry.highestScore)}
+                          {formatNumber(entry.currentScore)}
                         </div>
                         <div className="text-sm text-base-content/70">
                           คะแนน
                         </div>
-                        <div className="text-xs text-base-content/50 flex gap-2 flex-wrap">
+                        <div className="text-xs text-base-content/50 flex gap-2 flex-wrap mb-2">
                           {entry.mealBreakdown ? (
                             // โครงสร้างใหม่ - แสดงตามมื้อ
                             Object.entries(entry.mealBreakdown).map(([mealType, data]) => {
@@ -290,6 +321,29 @@ export default function Scoreboard() {
                             </>
                           )}
                         </div>
+
+                        {/* ปุ่มดูรายละเอียดอาหาร */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            {
+                              console.log('Scoreboard - entry data:', entry);
+                              handleShowMeals({
+                                email: entry.userId,
+                                name: entry.userName,
+                                score: entry.currentScore,
+                                meals: entry.mealBreakdown || {}
+                              });
+                            }
+                          }}
+                          className="btn btn-xs btn-outline btn-primary"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          ดูอาหาร
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -299,6 +353,16 @@ export default function Scoreboard() {
           })}
         </div>
       )}
+
+      {/* User Detail Modal */}
+      <UserDetailModal
+        isOpen={showModal}
+        onClose={handleCloseModal}
+        userEmail={selectedUser?.email}
+        userName={selectedUser?.name}
+        userScore={selectedUser?.score}
+        userMeals={selectedUser?.meals}
+      />
     </div>
   )
 }

@@ -39,7 +39,7 @@ export const getLeaderboard = async (limit = 10) => {
         userId: entry.user_id,
         userName: entry.user_name,
         userImage: entry.user_image,
-        highestScore: entry.current_score, // ใช้ current_score เป็นคะแนนล่าสุด
+        currentScore: entry.current_score, // ใช้ current_score เป็นคะแนนล่าสุด
         achievedAt: entry.achieved_at,
         // รองรับทั้งโครงสร้างเก่าและใหม่
         mainDishCount: entry.main_dish_count || 0,
@@ -109,20 +109,38 @@ export const updateScore = async (userData) => {
     try {
       console.log('New score:', score)
 
+      // ดึงข้อมูลเดิมก่อนเพื่อเช็ค high_score
+      const { data: existingData, error: fetchError } = await supabase
+        .from('scoreboard')
+        .select('high_score, high_score_achieved_at')
+        .eq('user_id', userId)
+        .single()
+
+      console.log('Existing data:', existingData)
+
+      // เตรียมข้อมูลสำหรับอัปเดท
+      const updateData = {
+        user_name: userName,
+        user_image: userImage,
+        current_score: score,
+        achieved_at: new Date().toISOString(),
+        total_items: totalItems,
+        meal_breakdown: Object.keys(mealBreakdown).length > 0 ? mealBreakdown : null,
+        main_dish_count: mainDishCount,
+        side_dish_count: sideDishCount
+      }
+
+      // ถ้าคะแนนใหม่สูงกว่าคะแนนสูงสุดเดิม ให้อัปเดท high_score
+      if (!existingData || !existingData.high_score || score > existingData.high_score) {
+        updateData.high_score = score
+        updateData.high_score_achieved_at = new Date().toISOString()
+        console.log('New high score detected:', score, 'Previous:', existingData?.high_score || 0)
+      }
+
       // ลองอัพเดทก่อน ถ้าไม่มีค่อย insert
       const { data: updateResult, error: updateError } = await supabase
         .from('scoreboard')
-        .update({
-          user_name: userName,
-          user_image: userImage,
-          current_score: score,
-          achieved_at: new Date().toISOString(),
-          total_items: totalItems,
-          meal_breakdown: Object.keys(mealBreakdown).length > 0 ? mealBreakdown : null, // JSONB รับ object โดยตรง
-          // รองรับ backward compatibility
-          main_dish_count: mainDishCount,
-          side_dish_count: sideDishCount
-        })
+        .update(updateData)
         .eq('user_id', userId)
         .select()
 
@@ -141,10 +159,11 @@ export const updateScore = async (userData) => {
             user_name: userName,
             user_image: userImage,
             current_score: score,
+            high_score: score, // ผู้ใช้ใหม่ high_score = current_score
+            high_score_achieved_at: new Date().toISOString(),
             achieved_at: new Date().toISOString(),
             total_items: totalItems,
-            meal_breakdown: Object.keys(mealBreakdown).length > 0 ? mealBreakdown : null, // JSONB รับ object โดยตรง
-            // รองรับ backward compatibility
+            meal_breakdown: Object.keys(mealBreakdown).length > 0 ? mealBreakdown : null,
             main_dish_count: mainDishCount,
             side_dish_count: sideDishCount
           })

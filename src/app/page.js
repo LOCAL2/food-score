@@ -188,6 +188,77 @@ export default function Home() {
     }
   };
 
+  // ฟังก์ชันบันทึกรายการอาหารลง food_items table
+  const saveFoodItems = async () => {
+    try {
+      console.log('Starting food items save process...');
+
+      // ขั้นตอนที่ 1: ลบข้อมูลเก่าของผู้ใช้ก่อน
+      console.log('Deleting old food items...');
+      const deleteResponse = await fetch('/api/food-items', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!deleteResponse.ok) {
+        console.warn('Failed to delete old food items, but continuing...');
+      } else {
+        console.log('Old food items deleted successfully');
+      }
+
+      // ขั้นตอนที่ 2: บันทึกข้อมูลใหม่
+      console.log('Saving new food items...');
+      const foodItemPromises = [];
+
+      // วนลูปผ่านมื้อที่เลือก
+      selectedMeals.forEach(mealType => {
+        const mealItems = meals[mealType] || [];
+        const validItems = mealItems.filter(item => item && typeof item === 'object' && item.name && item.name.trim());
+
+        // บันทึกแต่ละรายการอาหาร
+        validItems.forEach(item => {
+          const promise = fetch('/api/food-items', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              foodName: item.name.trim(),
+              amount: item.amount || 1,
+              mealType: mealType
+            })
+          });
+          foodItemPromises.push(promise);
+        });
+      });
+
+      // รอให้บันทึกทั้งหมดเสร็จ
+      const results = await Promise.all(foodItemPromises);
+
+      // ตรวจสอบผลลัพธ์
+      const failedItems = [];
+      for (let i = 0; i < results.length; i++) {
+        if (!results[i].ok) {
+          failedItems.push(i);
+        }
+      }
+
+      if (failedItems.length > 0) {
+        console.warn(`Failed to save ${failedItems.length} food items`);
+      } else {
+        console.log('All food items saved successfully');
+
+        // รอสักครู่เพื่อให้ database อัปเดต
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+    } catch (error) {
+      console.error('Error saving food items:', error);
+    }
+  };
+
   // ฟังก์ชันบันทึกคะแนนไปยัง scoreboard
   const saveToScoreboard = async (score) => {
     try {
@@ -547,6 +618,9 @@ export default function Home() {
     }
 
     setIsSaving(true);
+
+    // บันทึกรายการอาหารลง food_items table
+    await saveFoodItems();
 
     try {
       // รวบรวมข้อมูลอาหารจากมื้อที่เลือก
@@ -959,7 +1033,7 @@ export default function Home() {
         <div className="card bg-base-100 shadow-xl mb-8 border border-accent/20">
           <div className="card-body">
             <h2 className="card-title text-2xl text-accent mb-4 flex items-center justify-center">
-               เลือกมื้ออาหารที่ต้องการคำนวณ
+               เลือกมื้ออาหาร
             </h2>
 
             <div className="flex flex-wrap gap-4 justify-center">
