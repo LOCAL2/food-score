@@ -248,7 +248,7 @@ export default function Scoreboard() {
 
                       {/* User Info - Clickable */}
                       <div
-                        className="flex items-center gap-3 flex-1 cursor-pointer hover:bg-base-200/50 rounded-lg p-2 transition-colors"
+                        className="flex items-center gap-3 flex-1 cursor-pointer hover:bg-base-200/30 rounded-lg p-2 transition-colors"
                         onClick={() => handleUserClick(entry.userId)}
                       >
                         <div className="avatar">
