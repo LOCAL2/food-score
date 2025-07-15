@@ -11,8 +11,6 @@ export default function Profile() {
   const [highScore, setHighScore] = useState(0)
   const [highScoreDate, setHighScoreDate] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [averageScore, setAverageScore] = useState(0)
-  const [totalRecords, setTotalRecords] = useState(0)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -22,7 +20,6 @@ export default function Profile() {
 
     if (session?.user) {
       fetchHighScore()
-      fetchScoreHistory()
     }
   }, [session, status, router])
 
@@ -40,22 +37,6 @@ export default function Profile() {
       console.error('Error fetching high score:', error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const fetchScoreHistory = async () => {
-    try {
-      const response = await fetch('/api/user/score-history')
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
-          setAverageScore(data.averageScore)
-          setTotalRecords(data.totalRecords)
-          console.log('Score history:', data)
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching score history:', error)
     }
   }
 
@@ -166,31 +147,6 @@ export default function Profile() {
                     day: 'numeric'
                   })}
                 </p>
-              </div>
-
-              {/* Average Score */}
-              <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl p-6 text-center border border-blue-500/30">
-                <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-                <h3 className="text-white font-semibold mb-1">คะแนนเฉลี่ย</h3>
-                {loading ? (
-                  <div className="animate-pulse">
-                    <div className="h-6 bg-slate-600 rounded mb-1"></div>
-                    <div className="h-3 bg-slate-700 rounded"></div>
-                  </div>
-                ) : (
-                  <>
-                    <p className="text-blue-400 text-xl font-bold">
-                      {averageScore.toLocaleString()}
-                    </p>
-                    <p className="text-slate-400 text-xs">
-                      จาก {totalRecords} ครั้ง
-                    </p>
-                  </>
-                )}
               </div>
 
               {/* Account Type */}

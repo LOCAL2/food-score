@@ -134,13 +134,8 @@ export default function UserProfile({ params }) {
 
                 {/* User Details */}
                 <div className="space-y-2 mb-4">
-                  <div className="flex items-center justify-between p-2 bg-slate-700/30 rounded-lg">
-                    <span className="text-slate-400 text-sm">ID</span>
+                  <div className="flex items-center justify-center p-2 bg-slate-700/30 rounded-lg">
                     <span className="text-white text-sm font-mono">{userProfile.user.email}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2 bg-slate-700/30 rounded-lg">
-                    <span className="text-slate-400 text-sm">Email</span>
-                    <span className="text-white text-sm">{session.user.email}</span>
                   </div>
                 </div>
 
@@ -150,7 +145,7 @@ export default function UserProfile({ params }) {
 
           {/* Stats */}
           <div className="lg:col-span-2">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               {/* Highest Score */}
               <div className="bg-slate-800/90 backdrop-blur-xl rounded-2xl p-6 border border-slate-600/30">
                 <div className="text-center">
@@ -171,30 +166,25 @@ export default function UserProfile({ params }) {
                 <div className="text-center">
                   <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-xl flex items-center justify-center mx-auto mb-3">
                     <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <p className="text-slate-400 text-xs mb-1">จำนวนบันทึก</p>
-                  <p className="text-2xl font-bold text-blue-400">
-                    {userProfile.stats.totalRecords || '0'}
+                  <p className="text-slate-400 text-xs mb-1">อัปเดทล่าสุด</p>
+                  <p className="text-lg font-bold text-blue-400">
+                    {userProfile.stats.lastUpdated ?
+                      new Date(userProfile.stats.lastUpdated).toLocaleString('th-TH', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      }) : 'ยังไม่มีข้อมูล'
+                    }
                   </p>
                 </div>
               </div>
 
-              {/* Average Score */}
-              <div className="bg-slate-800/90 backdrop-blur-xl rounded-2xl p-6 border border-slate-600/30">
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-500 rounded-xl flex items-center justify-center mx-auto mb-3">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                  </div>
-                  <p className="text-slate-400 text-xs mb-1">คะแนนเฉลี่ย</p>
-                  <p className="text-2xl font-bold text-purple-400">
-                    {userProfile.stats.averageScore?.toLocaleString() || '0'}
-                  </p>
-                </div>
-              </div>
+
             </div>
 
             {/* Recent Activity */}

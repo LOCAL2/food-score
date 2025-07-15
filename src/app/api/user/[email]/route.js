@@ -32,50 +32,12 @@ export async function GET(request, { params }) {
       .eq('user_id', decodedEmail)
       .single()
 
-    // ดึงประวัติคะแนนจาก food_items เพื่อคำนวณคะแนนเฉลี่ย
-    const { data: foodItems, error: foodError } = await supabase
-      .from('food_items')
-      .select('total_score, created_at')
-      .eq('user_email', decodedEmail)
-      .order('created_at', { ascending: false })
+    // ใช้ updated_at จาก scoreboard แทน
+    const lastUpdated = userData?.achieved_at || null
+    console.log('Last updated from scoreboard:', lastUpdated)
 
-    let averageScore = 0
-    let totalRecords = 0
-    let recentData = userData ? [userData] : []
-
-    if (foodItems && foodItems.length > 0) {
-      // จัดกลุ่มตามวันเพื่อคำนวณคะแนนรายวัน
-      const scoresByDate = {}
-
-      foodItems.forEach(item => {
-        const date = new Date(item.created_at).toDateString()
-        if (!scoresByDate[date]) {
-          scoresByDate[date] = 0
-        }
-        scoresByDate[date] += item.total_score || 0
-      })
-
-      const dailyScores = Object.values(scoresByDate)
-      totalRecords = dailyScores.length
-      averageScore = totalRecords > 0
-        ? dailyScores.reduce((sum, score) => sum + score, 0) / totalRecords
-        : 0
-
-      console.log('Calculated average from food_items:', { totalRecords, averageScore })
-    } else {
-      // Fallback: ใช้ข้อมูลจาก scoreboard
-      totalRecords = userData ? 1 : 0
-      averageScore = userData?.current_score || 0
-      console.log('Using scoreboard data for average:', { totalRecords, averageScore })
-    }
-
-    // Debug log
-    console.log('User data from database:', {
-      current_score: userData?.current_score,
-      high_score: userData?.high_score,
-      high_score_achieved_at: userData?.high_score_achieved_at,
-      achieved_at: userData?.achieved_at
-    })
+    const recentData = userData ? [userData] : []
+    const totalRecords = userData ? 1 : 0
 
     const userProfile = {
       user: {
@@ -88,7 +50,8 @@ export async function GET(request, { params }) {
         highestScoreDate: userData?.high_score_achieved_at || userData?.achieved_at || null,
         currentScore: userData?.current_score || 0,
         totalRecords: totalRecords || 0,
-        averageScore: Math.round(averageScore * 100) / 100, // ปัดเศษ 2 ตำแหน่ง
+        lastUpdated: lastUpdated,
+        averageScore: userData?.current_score || 0,
         recentActivity: (recentData || []).map(record => ({
           score: record.current_score,
           date: record.achieved_at,
@@ -101,8 +64,6 @@ export async function GET(request, { params }) {
         }))
       }
     }
-
-    console.log('Final userProfile stats:', userProfile.stats)
 
     return NextResponse.json(userProfile)
   } catch (error) {
