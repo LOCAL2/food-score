@@ -815,14 +815,14 @@ export default function Home() {
               <div className="flex gap-2 mt-2">
                 <button
                   onClick={() => fetchUserRank(false)}
-                  className={`btn btn-xs btn-primary ${isRankLoading ? 'loading' : ''}`}
+                  className={`btn btn-xs btn-primary ${isRankLoading ? 'loading' : ''} cursor-pointer`}
                   disabled={isRankLoading}
                 >
                   {isRankLoading ? 'Loading...' : 'Refresh Rank'}
                 </button>
                 <button
                   onClick={() => fetchUserRank(true)}
-                  className="btn btn-xs btn-ghost"
+                  className="btn btn-xs btn-ghost cursor-pointer"
                 >
                   Silent Refresh
                 </button>
@@ -877,7 +877,7 @@ export default function Home() {
             </svg>
             <span>{notification.message}</span>
             <button
-              className="btn btn-sm btn-ghost"
+              className="btn btn-sm btn-ghost cursor-pointer"
               onClick={() => setNotification(null)}
             >
               ✕
@@ -904,7 +904,7 @@ export default function Home() {
                 <div className="text-sm">คุณกำลังดูผลคะแนนที่ถูกแชร์มา</div>
               </div>
               <button
-                className="btn btn-sm btn-ghost"
+                className="btn btn-sm btn-ghost cursor-pointer"
                 onClick={() => {
                   setIsSharedData(false);
                   setMeals({
@@ -941,7 +941,7 @@ export default function Home() {
                   key={meal.key}
                   onClick={() => toggleMealSelection(meal.key)}
                   disabled={isSharedData}
-                  className={`btn btn-lg gap-2 shadow-lg transition-all duration-200 ${
+                  className={`btn btn-lg gap-2 shadow-lg transition-all duration-200 cursor-pointer ${
                     selectedMeals.includes(meal.key)
                       ? `${meal.color} hover:shadow-xl transform hover:scale-105`
                       : 'btn-outline hover:shadow-md'
@@ -1005,7 +1005,7 @@ export default function Home() {
                       {mealItems.length > 1 && !isSharedData && (
                         <button
                           onClick={() => removeMealItem(mealType, index)}
-                          className="btn btn-error btn-sm px-3 shadow-md hover:shadow-lg transform hover:scale-110 transition-all duration-200"
+                          className="btn btn-error btn-sm px-3 shadow-md hover:shadow-lg transform hover:scale-110 transition-all duration-200 cursor-pointer"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1018,7 +1018,7 @@ export default function Home() {
                   <button
                     onClick={() => addMealItem(mealType)}
                     disabled={isSharedData}
-                    className={`btn btn-${config.color} w-full mt-3 gap-2 shadow-lg transition-all duration-200 border-none ${
+                    className={`btn btn-${config.color} w-full mt-3 gap-2 shadow-lg transition-all duration-200 border-none cursor-pointer ${
                       isSharedData
                         ? 'btn-disabled opacity-50 cursor-not-allowed'
                         : 'hover:shadow-xl transform hover:scale-105'
@@ -1080,7 +1080,7 @@ export default function Home() {
               <button
                 onClick={saveToHistory}
                 disabled={totalScore === 0 || isSharedData || isSaving}
-                className={`btn btn-lg gap-3 shadow-xl transition-all duration-300 ${
+                className={`btn btn-lg gap-3 shadow-xl transition-all duration-300 cursor-pointer ${
                   totalScore === 0 || isSharedData || isSaving
                     ? 'btn-disabled opacity-50 cursor-not-allowed'
                     : 'btn-success hover:btn-success hover:shadow-2xl transform hover:scale-105 active:scale-95'
@@ -1122,7 +1122,7 @@ export default function Home() {
               <button
                 onClick={copyShareLink}
                 disabled={totalScore === 0}
-                className={`btn btn-accent gap-2 shadow-lg transition-all duration-200 ${
+                className={`btn btn-accent gap-2 shadow-lg transition-all duration-200 cursor-pointer ${
                   totalScore === 0
                     ? 'btn-disabled opacity-50 cursor-not-allowed'
                     : 'hover:shadow-xl transform hover:scale-105'
@@ -1255,7 +1255,7 @@ export default function Home() {
                     <div className="flex gap-2 flex-wrap">
                       <button
                         onClick={() => copyLinkFromHistory()}
-                        className="btn btn-xs btn-accent gap-1"
+                        className="btn btn-xs btn-accent gap-1 cursor-pointer"
                       >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -1265,7 +1265,7 @@ export default function Home() {
 
                       <button
                         onClick={() => generateImageFromHistory(record)}
-                        className="btn btn-xs btn-info gap-1"
+                        className="btn btn-xs btn-info gap-1 cursor-pointer"
                       >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />

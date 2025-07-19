@@ -118,7 +118,7 @@ export default function FeatureAnnouncement() {
               <div className="flex gap-4">
                 <button
                   onClick={handleDismiss24Hours}
-                  className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold py-3 px-8 rounded-xl hover:from-cyan-600 hover:to-blue-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                  className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold py-3 px-8 rounded-xl hover:from-cyan-600 hover:to-blue-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl cursor-pointer"
                 >
                   <span className="flex items-center justify-center gap-2">
                     <span>เข้าใจแล้ว</span>
@@ -129,7 +129,7 @@ export default function FeatureAnnouncement() {
                 </button>
                 <button
                   onClick={handleClose}
-                  className="px-6 py-3 text-white/70 hover:text-white transition-all duration-300 border border-white/20 rounded-xl hover:bg-white/10 hover:border-white/30"
+                  className="px-6 py-3 text-white/70 hover:text-white transition-all duration-300 border border-white/20 rounded-xl hover:bg-white/10 hover:border-white/30 cursor-pointer"
                 >
                   ปิด
                 </button>

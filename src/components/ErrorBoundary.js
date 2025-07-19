@@ -32,13 +32,13 @@ class ErrorBoundary extends React.Component {
               <div className="space-y-3">
                 <button 
                   onClick={() => window.location.reload()}
-                  className="btn btn-primary w-full"
+                  className="btn btn-primary w-full cursor-pointer"
                 >
                   รีเฟรชหน้า
                 </button>
                 <button 
                   onClick={() => this.setState({ hasError: false, error: null })}
-                  className="btn btn-ghost w-full"
+                  className="btn btn-ghost w-full cursor-pointer"
                 >
                   ลองใหม่
                 </button>

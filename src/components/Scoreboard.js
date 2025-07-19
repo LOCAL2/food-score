@@ -203,7 +203,7 @@ export default function Scoreboard() {
       <div className="flex justify-end">
         <button
           onClick={() => fetchLeaderboard(false)}
-          className="btn btn-outline btn-sm"
+          className="btn btn-outline btn-sm cursor-pointer"
           disabled={loading}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -336,7 +336,7 @@ export default function Scoreboard() {
                               });
                             }
                           }}
-                          className="btn btn-xs btn-outline btn-primary"
+                          className="btn btn-xs btn-outline btn-primary cursor-pointer"
                         >
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
