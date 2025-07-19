@@ -89,7 +89,7 @@ export default function FeatureAnnouncement() {
                 </div>
                 <div className="p-4 bg-white/5 rounded-xl border border-white/10 text-center">
                   <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse mx-auto mb-3"></div>
-                  <span className="text-white/80 text-sm">เลือกใช้ได้ทั้ง Google และ Discord</span>
+                  <span className="text-white/80 text-sm">เลือกลงชื่อเข้าใช้ทั้ง Google และ Discord</span>
                 </div>
                 <div className="p-4 bg-white/5 rounded-xl border border-white/10 text-center">
                   <div className="w-3 h-3 bg-purple-400 rounded-full animate-pulse mx-auto mb-3"></div>
