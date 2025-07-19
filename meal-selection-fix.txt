@@ -1,7 +1,0 @@
-// แทนที่บรรทัด 958-962 ในไฟล์ src/app/page.js
-
-              {[
-                { key: 'breakfast', name: 'เช้า', color: 'btn-warning' },
-                { key: 'lunch', name: 'กลางวัน', color: 'btn-info' },
-                { key: 'dinner', name: 'เย็น', color: 'btn-secondary' }
-              ].map(meal => (

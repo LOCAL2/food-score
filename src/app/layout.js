@@ -1,8 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import SessionProvider from "@/components/SessionProvider";
-import EnvCheck from "@/components/EnvCheck";
-import DebugPanel from "@/components/DebugPanel";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
 const geistSans = Geist({
@@ -29,8 +27,6 @@ export default function RootLayout({ children }) {
         <ErrorBoundary>
           <SessionProvider>
             {children}
-            <EnvCheck />
-            {process.env.NODE_ENV === 'development' && <DebugPanel />}
           </SessionProvider>
         </ErrorBoundary>
       </body>

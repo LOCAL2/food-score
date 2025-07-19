@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { supabase } from '@/lib/supabase';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Header from '@/components/Header';
+import FeatureAnnouncement from '@/components/FeatureAnnouncement';
 import { formatNumber } from '@/utils/formatNumber';
 
 const SCORE_LEVELS = [
@@ -799,6 +800,7 @@ export default function Home() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gradient-to-br from-base-200 via-base-100 to-base-200" data-theme="cupcake">
+        <FeatureAnnouncement />
         <Header />
 
         {/* Debug Info */}
